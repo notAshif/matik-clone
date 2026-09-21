@@ -1,11 +1,10 @@
 {
-  "name": "@repo/backend",
+  "name": "@repo/common",
   "module": "index.ts",
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@types/bun": "latest",
-    "@repo/database": "*"
+    "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^7"

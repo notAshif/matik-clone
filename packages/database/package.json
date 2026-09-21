@@ -1,5 +1,5 @@
 {
-  "name": "@matik/database",
+  "name": "@repo/database",
   "module": "index.ts",
   "type": "module",
   "private": true,
