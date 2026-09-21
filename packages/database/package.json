@@ -1,0 +1,17 @@
+{
+  "name": "@matik/database",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^0.30.5"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2"
+  }
+}
