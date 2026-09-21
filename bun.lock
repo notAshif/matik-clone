@@ -19,8 +19,9 @@
       },
     },
     "apps/backend": {
-      "name": "@matik/backend",
+      "name": "@repo/backend",
       "devDependencies": {
+        "@repo/common": "*",
         "@repo/database": "*",
         "@types/bun": "latest",
       },
@@ -29,7 +30,7 @@
       },
     },
     "apps/websocket": {
-      "name": "@matik/websocket",
+      "name": "@repo/websocket",
       "devDependencies": {
         "@types/bun": "latest",
       },
@@ -38,7 +39,10 @@
       },
     },
     "packages/common": {
-      "name": "@matik/common",
+      "name": "@repo/common",
+      "dependencies": {
+        "zod": "^4.6.5",
+      },
       "devDependencies": {
         "@types/bun": "latest",
       },
@@ -250,12 +254,6 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@matik/backend": ["@matik/backend@workspace:apps/backend"],
-
-    "@matik/common": ["@matik/common@workspace:packages/common"],
-
-    "@matik/websocket": ["@matik/websocket@workspace:apps/websocket"],
-
     "@next/eslint-plugin-next": ["@next/eslint-plugin-next@16.3.4", "", { "dependencies": { "@eslint-community/eslint-utils": "4.9.1", "fast-glob": "3.3.1" } }, "sha512-szW9y2Aumu4z88YXfTzcFsgUAg2k64uzbtcO5L9f1AKS4w/GUKJcbFllRflROVyNPgJtGOnvNxiyp3v6b+prIA=="],
 
     "@nodelib/fs.scandir": ["@nodelib/fs.scandir@2.1.5", "", { "dependencies": { "@nodelib/fs.stat": "2.0.5", "run-parallel": "^1.1.9" } }, "sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="],
@@ -268,6 +266,10 @@
 
     "@petamoriken/float16": ["@petamoriken/float16@3.9.3", "", {}, "sha512-8awtpHXCx/bNpFt4mt2xdkgtgVvKqty8VbjHI/WWWQuEw+KLzFot3f4+LkQY9YmOtq7A5GdOnqoIC8Pdygjk2g=="],
 
+    "@repo/backend": ["@repo/backend@workspace:apps/backend"],
+
+    "@repo/common": ["@repo/common@workspace:packages/common"],
+
     "@repo/database": ["@repo/database@workspace:packages/database"],
 
     "@repo/eslint-config": ["@repo/eslint-config@workspace:packages/eslint-config"],
@@ -275,6 +277,8 @@
     "@repo/typescript-config": ["@repo/typescript-config@workspace:packages/typescript-config"],
 
     "@repo/ui": ["@repo/ui@workspace:packages/ui"],
+
+    "@repo/websocket": ["@repo/websocket@workspace:apps/websocket"],
 
     "@rolldown/binding-android-arm-eabi": ["@rolldown/binding-android-arm-eabi@1.2.9", "", { "os": "android", "cpu": "arm" }, "sha512-tNISae1QEf/vkb3xkRcjV5SEdzPE97We5IVaa2Z8jSszQPZ8U60B/YCYpw4QI7VidYsBtKavczXf+DyDs9WGxw=="],
 

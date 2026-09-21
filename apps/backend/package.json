@@ -5,7 +5,8 @@
   "private": true,
   "devDependencies": {
     "@types/bun": "latest",
-    "@repo/database": "*"
+    "@repo/database": "*",
+    "@repo/common": "*"
   },
   "peerDependencies": {
     "typescript": "^7"
