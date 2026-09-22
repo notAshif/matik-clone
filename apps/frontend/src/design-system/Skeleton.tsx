@@ -108,8 +108,8 @@ export const ProfileMainSkeleton: React.FC = () => {
   return (
     <>
       <div className="flex items-center justify-between">
-        <Skeleton className="!w-32 !h-8 !rounded-xl" />
-        <Skeleton className="!w-28 !h-6 !rounded-full" />
+        <Skeleton className="w-32! !h-8 rounded-xl!" />
+        <Skeleton className="!w-28 !h-6 rounded-full!" />
       </div>
 
       {/* Hero Profile Card Skeleton */}
