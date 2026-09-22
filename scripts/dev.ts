@@ -48,38 +48,29 @@ function tryStartDockerPostgres(): boolean {
   return false;
 }
 
-async function runDatabaseMigration(): Promise<boolean> {
+function runDatabaseMigration(): boolean {
   console.log("\x1b[33m[1/2] 🗄️ Checking database & running migrations...\x1b[0m");
 
   // Attempt auto-start if docker postgres container is stopped
   tryStartDockerPostgres();
 
-  return new Promise((resolve) => {
-    const migrateProcess = spawn("bun", ["./src/migrate.ts"], {
-      cwd: databaseDir,
-      stdio: "inherit",
-      shell: process.platform === "win32",
-      env: {
-        ...process.env,
-      },
-    });
-
-    migrateProcess.on("close", (code: number) => {
-      if (code === 0) {
-        console.log("\x1b[32m✨ Database is fully migrated and ready!\x1b[0m\n");
-        resolve(true);
-      } else {
-        console.error(`\x1b[31m❌ Database migration exited with code ${code}.\x1b[0m`);
-        console.error("👉 If PostgreSQL is not running, run: docker start matik-postgres\n");
-        resolve(false);
-      }
-    });
-
-    migrateProcess.on("error", (err) => {
-      console.error("\x1b[31m❌ Failed to execute migration script:\x1b[0m", err.message);
-      resolve(false);
-    });
+  const result = spawnSync("bun", ["./src/migrate.ts"], {
+    cwd: databaseDir,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+    env: {
+      ...process.env,
+    },
   });
+
+  if (result.status === 0) {
+    console.log("\x1b[32m✨ Database is fully migrated and ready!\x1b[0m\n");
+    return true;
+  } else {
+    console.error(`\x1b[31m❌ Database migration exited with code ${result.status}.\x1b[0m`);
+    console.error("👉 If PostgreSQL is not running, run: docker start matik-postgres\n");
+    return false;
+  }
 }
 
 function startDevServers() {
@@ -128,7 +119,7 @@ async function main() {
   printBanner();
 
   if (!isSkipMigrate) {
-    const migrationSuccess = await runDatabaseMigration();
+    const migrationSuccess = runDatabaseMigration();
     if (!migrationSuccess) {
       if (isMigrateOnly) {
         process.exit(1);
