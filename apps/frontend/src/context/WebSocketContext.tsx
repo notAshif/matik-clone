@@ -14,6 +14,8 @@ interface WebSocketContextType {
   onlineUsers: SafeUser[];
   queueStatus: "IDLE" | "WAITING" | "MATCHED";
   incomingInvite: { invitationId: string; from: SafeUser } | null;
+  outgoingInvite: { invitationId: string; to: SafeUser } | null;
+  inviteFeedback: string | null;
   activeGame: StartGameEvent["payload"] | null;
   latestAnswerResult: AnswerResultEvent["payload"] | null;
   liveScores: Record<number, number>;
@@ -21,6 +23,7 @@ interface WebSocketContextType {
   joinQueue: () => void;
   leaveQueue: () => void;
   invitePlayer: (targetUserId: number) => void;
+  cancelInvitation: () => void;
   acceptGame: (invitationId: string) => void;
   declineGame: (invitationId: string) => void;
   submitAnswer: (gameId: number, questionId: number, answer: number, timeTakenMs: number) => void;
@@ -37,12 +40,15 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   const [onlineUsers, setOnlineUsers] = useState<SafeUser[]>([]);
   const [queueStatus, setQueueStatus] = useState<"IDLE" | "WAITING" | "MATCHED">("IDLE");
   const [incomingInvite, setIncomingInvite] = useState<{ invitationId: string; from: SafeUser } | null>(null);
+  const [outgoingInvite, setOutgoingInvite] = useState<{ invitationId: string; to: SafeUser } | null>(null);
+  const [inviteFeedback, setInviteFeedback] = useState<string | null>(null);
   const [activeGame, setActiveGame] = useState<StartGameEvent["payload"] | null>(null);
   const [latestAnswerResult, setLatestAnswerResult] = useState<AnswerResultEvent["payload"] | null>(null);
   const [liveScores, setLiveScores] = useState<Record<number, number>>({});
   const [gameOver, setGameOver] = useState<GameOverEvent["payload"] | null>(null);
 
   const socketRef = useRef<WebSocket | null>(null);
+  const outgoingQueueRef = useRef<ClientAction[]>([]);
 
   useEffect(() => {
     if (!token) {
@@ -55,34 +61,73 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const ws = new WebSocket(`${WS_URL}?token=${token}`);
-    socketRef.current = ws;
+    let isUnmounted = false;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    ws.onopen = () => {
-      setIsConnected(true);
+    const connect = () => {
+      if (isUnmounted) return;
+      const ws = new WebSocket(`${WS_URL}?token=${token}`);
+      socketRef.current = ws;
+
+      ws.onopen = () => {
+        if (isUnmounted) {
+          ws.close(1000, "Component unmounted");
+          return;
+        }
+        setIsConnected(true);
+
+        // Flush any buffered outgoing actions
+        while (outgoingQueueRef.current.length > 0) {
+          const action = outgoingQueueRef.current.shift()!;
+          ws.send(JSON.stringify(action));
+        }
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as ServerEvent;
+          handleServerEvent(data);
+        } catch (err) {
+          console.error("Failed to parse incoming WebSocket message:", err);
+        }
+      };
+
+      ws.onclose = () => {
+        setIsConnected(false);
+        if (socketRef.current === ws) {
+          socketRef.current = null;
+        }
+        if (!isUnmounted) {
+          reconnectTimeout = setTimeout(() => {
+            connect();
+          }, 2000);
+        }
+      };
+
+      ws.onerror = (err) => {
+        console.warn("[WebSocket] Error event:", err);
+      };
     };
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data) as ServerEvent;
-        handleServerEvent(data);
-      } catch (err) {
-        console.error("Failed to parse incoming WebSocket message:", err);
-      }
-    };
-
-    ws.onclose = () => {
-      setIsConnected(false);
-      socketRef.current = null;
-    };
-
-    ws.onerror = (err) => {
-      console.error("WebSocket encountered error:", err);
-    };
+    connect();
 
     return () => {
-      ws.close();
-      socketRef.current = null;
+      isUnmounted = true;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      const currentSocket = socketRef.current;
+      if (currentSocket) {
+        // Prevent "WebSocket is closed before connection is established"
+        if (currentSocket.readyState === WebSocket.CONNECTING) {
+          currentSocket.onopen = () => {
+            currentSocket.close(1000, "Component unmounted");
+          };
+        } else if (currentSocket.readyState === WebSocket.OPEN) {
+          currentSocket.close(1000, "Component unmounted");
+        }
+        socketRef.current = null;
+      }
     };
   }, [token]);
 
@@ -96,15 +141,41 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
         setQueueStatus(event.payload.status === "WAITING" ? "WAITING" : "IDLE");
         break;
 
-      case "GAME_INVITATION":
-        setIncomingInvite(event.payload);
-        break;
+      case "INVITATION": {
+        const { invitationId, status, sender, recipient, role, reason } = event.payload;
 
-      case "INVITATION_DECLINED":
-        alert(`${event.payload.by.username} declined your game challenge.`);
+        if (status === "PENDING") {
+          if (role === "RECIPIENT") {
+            setIncomingInvite({ invitationId, from: sender });
+          } else if (role === "CHALLENGER") {
+            setOutgoingInvite({ invitationId, to: recipient });
+            setInviteFeedback(null);
+          }
+        } else if (status === "DECLINED") {
+          setOutgoingInvite(null);
+          setIncomingInvite(null);
+          if (role === "CHALLENGER") {
+            setInviteFeedback(reason || `${recipient.username} declined or is unavailable.`);
+            setTimeout(() => setInviteFeedback(null), 4000);
+          }
+        } else if (status === "CANCELLED" || status === "EXPIRED") {
+          setOutgoingInvite(null);
+          setIncomingInvite(null);
+          if (status === "EXPIRED" && role === "CHALLENGER") {
+            setInviteFeedback("Challenge expired without response.");
+            setTimeout(() => setInviteFeedback(null), 4000);
+          }
+        } else if (status === "ACCEPTED") {
+          setOutgoingInvite(null);
+          setIncomingInvite(null);
+        }
         break;
+      }
 
       case "START_GAME":
+        setOutgoingInvite(null);
+        setIncomingInvite(null);
+        setInviteFeedback(null);
         setQueueStatus("MATCHED");
         setActiveGame(event.payload);
         setLatestAnswerResult(null);
@@ -133,10 +204,13 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   const sendAction = (action: ClientAction) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify(action));
+    } else {
+      outgoingQueueRef.current.push(action);
     }
   };
 
   const joinQueue = () => {
+    setOutgoingInvite(null);
     setQueueStatus("WAITING");
     sendAction({ type: "JOIN_QUEUE", payload: {} });
   };
@@ -151,6 +225,15 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       type: "INVITE_PLAYER",
       payload: { targetUserId },
     });
+  };
+
+  const cancelInvitation = () => {
+    sendAction({
+      type: "CANCEL_INVITATION",
+      payload: { invitationId: outgoingInvite?.invitationId },
+    });
+    setOutgoingInvite(null);
+    setInviteFeedback(null);
   };
 
   const acceptGame = (invitationId: string) => {
@@ -196,6 +279,8 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
         onlineUsers,
         queueStatus,
         incomingInvite,
+        outgoingInvite,
+        inviteFeedback,
         activeGame,
         latestAnswerResult,
         liveScores,
@@ -203,6 +288,7 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
         joinQueue,
         leaveQueue,
         invitePlayer,
+        cancelInvitation,
         acceptGame,
         declineGame,
         submitAnswer,

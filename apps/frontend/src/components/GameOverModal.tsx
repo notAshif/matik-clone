@@ -98,20 +98,20 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({ onSearchNext }) =>
           variant="gold"
           ribbonTitle={ribbonTitle}
           ribbonColor={ribbonColor}
-          className="text-center !pt-10"
+          className="text-center pt-10!"
         >
           {/* Outcome Emblem */}
           <div className="mx-auto w-18 h-18 rounded-2xl flex items-center justify-center mb-3">
             {isWinner ? (
-              <div className="w-full h-full bg-gradient-to-b from-amber-400 to-amber-600 border-3 border-amber-300 rounded-2xl flex items-center justify-center shadow-[0_4px_0_#451a03,0_0_20px_rgba(245,158,11,0.5)]">
+              <div className="w-full h-full bg-linear-to-b from-amber-400 to-amber-600 border-3 border-amber-300 rounded-2xl flex items-center justify-center shadow-[0_4px_0_#451a03,0_0_20px_rgba(245,158,11,0.5)]">
                 <TrophyIcon className="w-10 h-10 text-[#451a03] drop-shadow" />
               </div>
             ) : isDraw ? (
-              <div className="w-full h-full bg-gradient-to-b from-indigo-500 to-indigo-700 border-3 border-indigo-400 rounded-2xl flex items-center justify-center shadow-[0_4px_0_#1e1b4b] text-white text-3xl font-black">
+              <div className="w-full h-full bg-linear-to-b from-indigo-500 to-indigo-700 border-3 border-indigo-400 rounded-2xl flex items-center justify-center shadow-[0_4px_0_#1e1b4b] text-white text-3xl font-black">
                 =
               </div>
             ) : (
-              <div className="w-full h-full bg-gradient-to-b from-rose-500 to-rose-700 border-3 border-rose-400 rounded-2xl flex items-center justify-center shadow-[0_4px_0_#450a0a] text-white text-3xl font-black">
+              <div className="w-full h-full bg-linear-to-b from-rose-500 to-rose-700 border-3 border-rose-400 rounded-2xl flex items-center justify-center shadow-[0_4px_0_#450a0a] text-white text-3xl font-black">
                 ✕
               </div>
             )}

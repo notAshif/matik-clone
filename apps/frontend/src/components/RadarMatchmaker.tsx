@@ -23,7 +23,7 @@ export const RadarMatchmaker: React.FC<RadarMatchmakerProps> = ({ onCancel }) =>
           variant="gold"
           ribbonTitle="MATCHMAKING RADAR"
           ribbonColor="gold"
-          className="flex flex-col items-center text-center !pt-10"
+          className="flex flex-col items-center text-center pt-10!"
         >
           {/* Radar Bezel Display */}
           <div className="relative w-64 h-64 my-4 rounded-full border-4 border-[#3a4768] bg-[#070b14] flex items-center justify-center overflow-hidden shadow-[inset_0_0_25px_rgba(0,0,0,0.9),0_0_20px_rgba(16,185,129,0.2)]">
@@ -33,12 +33,12 @@ export const RadarMatchmaker: React.FC<RadarMatchmakerProps> = ({ onCancel }) =>
             <div className="absolute w-16 h-16 rounded-full border border-emerald-500/25" />
 
             {/* Crosshairs */}
-            <div className="absolute w-full h-[1px] bg-emerald-500/20" />
-            <div className="absolute h-full w-[1px] bg-emerald-500/20" />
+            <div className="absolute w-full h-px bg-emerald-500/20" />
+            <div className="absolute h-full w-px bg-emerald-500/20" />
 
             {/* Radar Sweep Beam */}
             <div className="absolute inset-0 origin-center animate-radar-sweep pointer-events-none">
-              <div className="w-1/2 h-1/2 bg-gradient-to-br from-emerald-400/40 to-transparent [clip-path:polygon(0_0,100%_0,100%_100%)]" />
+              <div className="w-1/2 h-1/2 bg-linear-to-br from-emerald-400/40 to-transparent [clip-path:polygon(0_0,100%_0,100%_100%)]" />
             </div>
 
             {/* Pulsing Target Dot */}

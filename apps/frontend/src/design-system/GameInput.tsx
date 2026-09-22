@@ -18,7 +18,7 @@ export const GameInput = forwardRef<HTMLInputElement, GameInputProps>(
           ref={ref}
           {...props}
           className={`game-input px-4 py-3 text-base placeholder:text-slate-600 ${
-            error ? "!border-rose-500 !ring-2 !ring-rose-500/20" : ""
+            error ? "border-rose-500! ring-2! ring-rose-500/20!" : ""
           } ${className}`}
         />
         {error && (

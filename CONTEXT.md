@@ -26,7 +26,18 @@ A voluntary lobby state. Players must explicitly choose to enter the Queue (`JOI
 - **Queue Statuses**: `IDLE` (exploring dashboard), `WAITING` (in matchmaking radar).
 
 #### Direct Challenge (Invitation)
-A 1v1 duel request dispatched directly to an online user, bypassing the public Matchmaking Queue.
+A 1v1 duel request dispatched directly to an online user or practice sparring bot, bypassing the public Matchmaking Queue. Managed via a single unified `INVITATION` event with explicit status flags:
+- **Lifecycle States**:
+  - `PENDING`: Initiated by Challenger (`INVITATION` with `status: "PENDING"`, carrying `sender` and `recipient`). Expires after a 30-second TTL.
+  - `ACCEPTED`: Recipient accepts (`ACCEPT_GAME`), triggering immediate transition into a `Match` (`START_GAME`).
+  - `DECLINED`: Recipient declines (`DECLINE_GAME`) or is busy/offline; broadcast via `INVITATION` (`status: "DECLINED"`).
+  - `CANCELLED / EXPIRED`: Sender revokes (`CANCEL_INVITATION`) or 30s timeout elapses; broadcast via `INVITATION` (`status: "EXPIRED"` or `"CANCELLED"`).
+  - `COLLISION (Mutual Challenge)`: Recipient simultaneously challenges sender; server auto-resolves into an immediate `Match`.
+
+#### Bot Opponent (Sparring Challenger)
+An automated simulated Player (e.g. *EulerBot*, *GaussBot*) available for immediate practice duels and queue timeout fallbacks.
+- Possesses dynamic arithmetic solve rates mimicking human reaction times (2.5s - 6.5s per question).
+- Prevents matchmaking deadlocks during low-traffic periods or solo local testing.
 
 #### Header HUD
 The persistent global bar containing the Player's identity, avatar, live Rating pill, and session actions. Replaces full-page dashboard sidebars with an Apple-style floating or fixed frosted glass header.

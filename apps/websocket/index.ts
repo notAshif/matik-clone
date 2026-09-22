@@ -26,6 +26,7 @@ import {
 export type ConnectedUser = {
   id: number;
   username: string;
+  email?: string;
   ws: WebSocket;
 };
 
@@ -82,6 +83,7 @@ export function broadcastOnlineUsers(): void {
   const safeList: SafeUser[] = Array.from(connectedUsers.values()).map((u) => ({
     id: u.id,
     username: u.username,
+    email: u.email,
   }));
 
   const event: ServerEvent = {
@@ -211,6 +213,25 @@ export async function startMatch(
 
   activeGames.set(gameId, activeGame);
 
+  // Clear any existing invitations involving either player
+  for (const [inviteId, invite] of pendingInvitations.entries()) {
+    if (
+      invite.fromUser.id === player1.id ||
+      invite.toUser.id === player1.id ||
+      invite.fromUser.id === player2.id ||
+      invite.toUser.id === player2.id
+    ) {
+      clearTimeout(invite.timeout);
+      pendingInvitations.delete(inviteId);
+    }
+  }
+
+  // Remove both players from queue if waiting
+  const p1QueueIdx = waitingQueue.findIndex((u) => u.id === player1.id);
+  if (p1QueueIdx !== -1) waitingQueue.splice(p1QueueIdx, 1);
+  const p2QueueIdx = waitingQueue.findIndex((u) => u.id === player2.id);
+  if (p2QueueIdx !== -1) waitingQueue.splice(p2QueueIdx, 1);
+
   const [p1Rating, p2Rating] = await Promise.all([
     getLatestRating(player1.id),
     getLatestRating(player2.id),
@@ -221,7 +242,7 @@ export async function startMatch(
     payload: {
       gameId,
       timeLimit,
-      opponent: { id: player2.id, username: player2.username, rating: p2Rating },
+      opponent: { id: player2.id, username: player2.username, email: player2.email, rating: p2Rating },
       firstQuestion: toPublicQuestion(questions[0]!),
     },
   });
@@ -231,7 +252,7 @@ export async function startMatch(
     payload: {
       gameId,
       timeLimit,
-      opponent: { id: player1.id, username: player1.username, rating: p1Rating },
+      opponent: { id: player1.id, username: player1.username, email: player1.email, rating: p1Rating },
       firstQuestion: toPublicQuestion(questions[0]!),
     },
   });
@@ -346,47 +367,35 @@ export async function finishGame(
       })
       .where(eq(dbGames.id, gameId));
 
-    const p1Score = game.scores[p1.id] ?? 0;
-    const p2Score = game.scores[p2.id] ?? 0;
+    const realPlayers = game.players.filter((p) => p.id > 0);
 
-    await db.insert(gameMembers).values([
-      {
+    for (const player of realPlayers) {
+      const pScore = game.scores[player.id] ?? 0;
+      await db.insert(gameMembers).values({
         gameId,
-        userId: p1.id,
-        score: p1Score,
-        isWinner: winnerId === p1.id,
-        rank: winnerId === p1.id ? 1 : winnerId === null ? 1 : 2,
-      },
-      {
-        gameId,
-        userId: p2.id,
-        score: p2Score,
-        isWinner: winnerId === p2.id,
-        rank: winnerId === p2.id ? 1 : winnerId === null ? 1 : 2,
-      },
-    ]);
+        userId: player.id,
+        score: pScore,
+        isWinner: winnerId === player.id,
+        rank: winnerId === player.id ? 1 : winnerId === null ? 1 : 2,
+      });
 
-    // Persist rating records to database
-    await db.insert(ratings).values([
-      {
-        gameId,
-        userId: p1.id,
-        ratingBefore: p1Before,
-        ratingAfter: p1NewRating,
-        ratingChange: p1Delta,
-      },
-      {
-        gameId,
-        userId: p2.id,
-        ratingBefore: p2Before,
-        ratingAfter: p2NewRating,
-        ratingChange: p2Delta,
-      },
-    ]);
+      const pBefore = player.id === p1.id ? p1Before : p2Before;
+      const pAfter = player.id === p1.id ? p1NewRating : p2NewRating;
+      const pDelta = player.id === p1.id ? p1Delta : p2Delta;
 
-    if (game.answeredRecords.length > 0) {
+      await db.insert(ratings).values({
+        gameId,
+        userId: player.id,
+        ratingBefore: pBefore,
+        ratingAfter: pAfter,
+        ratingChange: pDelta,
+      });
+    }
+
+    const realAnswers = game.answeredRecords.filter((ans) => ans.userId > 0);
+    if (realAnswers.length > 0) {
       await db.insert(questionAnswers).values(
-        game.answeredRecords.map((ans) => ({
+        realAnswers.map((ans) => ({
           gameId,
           questionId: ans.questionId,
           userId: ans.userId,
@@ -412,10 +421,26 @@ export function cleanupUser(userId: number): void {
       clearTimeout(invite.timeout);
       if (invite.fromUser.id === userId) {
         sendEvent(invite.toUser.ws, {
-          type: "INVITATION_DECLINED",
+          type: "INVITATION",
           payload: {
             invitationId: inviteId,
-            by: { id: userId, username: invite.fromUser.username },
+            status: "DECLINED",
+            sender: { id: userId, username: invite.fromUser.username },
+            recipient: { id: invite.toUser.id, username: invite.toUser.username },
+            role: "RECIPIENT",
+            reason: "Challenger disconnected",
+          },
+        });
+      } else {
+        sendEvent(invite.fromUser.ws, {
+          type: "INVITATION",
+          payload: {
+            invitationId: inviteId,
+            status: "DECLINED",
+            sender: { id: invite.fromUser.id, username: invite.fromUser.username },
+            recipient: { id: invite.toUser.id, username: invite.toUser.username },
+            role: "CHALLENGER",
+            reason: "Opponent disconnected",
           },
         });
       }
@@ -433,58 +458,21 @@ export function cleanupUser(userId: number): void {
   broadcastOnlineUsers();
 }
 
-wss.on("connection", async (ws: WebSocket, req) => {
-  const token = req.url?.split("token=")[1]?.split("&")[0];
+wss.on("connection", (ws: WebSocket, req) => {
+  const earlyMessageQueue: (string | Buffer)[] = [];
+  let isReady = false;
+  let handleAction: ((action: ClientAction) => Promise<void>) | null = null;
 
-  if (!token) {
-    ws.close(1008, "Token missing");
-    return;
-  }
-
-  let decode: JwtPayload;
-  try {
-    decode = verify(token, JWT_SECRET) as JwtPayload;
-  } catch {
-    ws.close(1008, "Invalid token");
-    return;
-  }
-
-  const userId = Number(decode.userId ?? decode.id);
-  if (!userId || isNaN(userId)) {
-    ws.close(1008, "Invalid user ID in token");
-    return;
-  }
-
-  let username = decode.username as string | undefined;
-  try {
-    const dbUser = await db.query.users.findFirst({
-      where: eq(users.id, userId),
-    });
-    if (dbUser) {
-      username = dbUser.username;
+  // 1. Immediately attach synchronous listener to prevent early packet dropping
+  ws.on("message", (data) => {
+    if (!isReady || !handleAction) {
+      earlyMessageQueue.push(data as string | Buffer);
+      return;
     }
-  } catch (err) {
-    console.warn(`[WebSocket] Could not query user #${userId} from db:`, err);
-  }
-
-  if (!username) {
-    username = `Player_${userId}`;
-  }
-
-  const connectedUser: ConnectedUser = {
-    id: userId,
-    username,
-    ws,
-  };
-  connectedUsers.set(userId, connectedUser);
-  broadcastOnlineUsers();
-
-  sendEvent(ws, {
-    type: "QUEUE_STATUS",
-    payload: { status: "IDLE" },
+    processMessage(data);
   });
 
-  ws.on("message", async (data) => {
+  const processMessage = async (data: string | Buffer | ArrayBuffer | Buffer[]) => {
     let parsedJson: unknown;
     try {
       parsedJson = JSON.parse(data.toString());
@@ -494,180 +482,490 @@ wss.on("connection", async (ws: WebSocket, req) => {
 
     const validation = clientActionSchema.safeParse(parsedJson);
     if (!validation.success) {
-      console.warn(`[WebSocket] Invalid message from user #${userId}:`, validation.error.message);
+      console.warn(`[WebSocket] Invalid message:`, validation.error.message);
       return;
     }
 
-    const action = validation.data;
+    if (handleAction) {
+      await handleAction(validation.data);
+    }
+  };
 
-    switch (action.type) {
-      case "JOIN_QUEUE": {
-        if (waitingQueue.some((u) => u.id === userId)) {
-          return;
-        }
-        if (waitingQueue.length > 0) {
-          const opponent = waitingQueue.shift()!;
-          if (opponent.id !== userId && opponent.ws.readyState === WebSocket.OPEN) {
-            await startMatch(opponent, connectedUser);
+  (async () => {
+    const token = req.url?.split("token=")[1]?.split("&")[0];
+
+    if (!token) {
+      ws.close(1008, "Token missing");
+      return;
+    }
+
+    let decode: JwtPayload;
+    try {
+      decode = verify(token, JWT_SECRET) as JwtPayload;
+    } catch {
+      ws.close(1008, "Invalid token");
+      return;
+    }
+
+    const userId = Number(decode.userId ?? decode.id);
+    if (!userId || isNaN(userId)) {
+      ws.close(1008, "Invalid user ID in token");
+      return;
+    }
+
+    let username = decode.username as string | undefined;
+    let email = decode.email as string | undefined;
+    try {
+      const dbUser = await db.query.users.findFirst({
+        where: eq(users.id, userId),
+      });
+      if (dbUser) {
+        username = dbUser.username;
+        email = dbUser.email;
+      }
+    } catch (err) {
+      console.warn(`[WebSocket] Could not query user #${userId} from db:`, err);
+    }
+
+    if (!username) {
+      username = `Player_${userId}`;
+    }
+
+    const existingConn = connectedUsers.get(userId);
+    if (existingConn && existingConn.ws !== ws && existingConn.ws.readyState === WebSocket.OPEN) {
+      try {
+        existingConn.ws.close(1000, "Replaced by newer session");
+      } catch {}
+    }
+
+    const connectedUser: ConnectedUser = {
+      id: userId,
+      username,
+      email,
+      ws,
+    };
+    connectedUsers.set(userId, connectedUser);
+    broadcastOnlineUsers();
+
+    sendEvent(ws, {
+      type: "QUEUE_STATUS",
+      payload: { status: "IDLE" },
+    });
+
+    handleAction = async (action: ClientAction) => {
+      switch (action.type) {
+        case "JOIN_QUEUE": {
+          if (waitingQueue.some((u) => u.id === userId)) {
             return;
           }
-        }
 
-        waitingQueue.push(connectedUser);
-        sendEvent(ws, {
-          type: "QUEUE_STATUS",
-          payload: { status: "WAITING" },
-        });
-        break;
-      }
-
-      case "LEAVE_QUEUE": {
-        const idx = waitingQueue.findIndex((u) => u.id === userId);
-        if (idx !== -1) {
-          waitingQueue.splice(idx, 1);
-        }
-        sendEvent(ws, {
-          type: "QUEUE_STATUS",
-          payload: { status: "IDLE" },
-        });
-        break;
-      }
-
-      case "INVITE_PLAYER": {
-        const targetUser = connectedUsers.get(action.payload.targetUserId);
-        if (!targetUser || targetUser.ws.readyState !== WebSocket.OPEN) {
-          return;
-        }
-
-        const invitationId = crypto.randomUUID();
-        const timeout = setTimeout(() => {
-          pendingInvitations.delete(invitationId);
-        }, 30000); 
-
-        pendingInvitations.set(invitationId, {
-          id: invitationId,
-          fromUser: connectedUser,
-          toUser: targetUser,
-          timeout,
-        });
-
-        sendEvent(targetUser.ws, {
-          type: "GAME_INVITATION",
-          payload: {
-            invitationId,
-            from: { id: connectedUser.id, username: connectedUser.username },
-          },
-        });
-        break;
-      }
-
-      case "ACCEPT_GAME": {
-        const invite = pendingInvitations.get(action.payload.invitationId);
-        if (!invite) return;
-
-        clearTimeout(invite.timeout);
-        pendingInvitations.delete(action.payload.invitationId);
-
-        if (
-          invite.fromUser.ws.readyState === WebSocket.OPEN &&
-          connectedUser.ws.readyState === WebSocket.OPEN
-        ) {
-          await startMatch(invite.fromUser, connectedUser);
-        }
-        break;
-      }
-
-      case "DECLINE_GAME": {
-        const invite = pendingInvitations.get(action.payload.invitationId);
-        if (!invite) return;
-
-        clearTimeout(invite.timeout);
-        pendingInvitations.delete(action.payload.invitationId);
-
-        sendEvent(invite.fromUser.ws, {
-          type: "INVITATION_DECLINED",
-          payload: {
-            invitationId: action.payload.invitationId,
-            by: { id: connectedUser.id, username: connectedUser.username },
-          },
-        });
-        break;
-      }
-
-      case "SUBMIT_ANSWER": {
-        const { gameId, questionId, answer, timeTakenMs } = action.payload;
-        const game = activeGames.get(gameId);
-        if (!game || game.isSettled) return;
-
-        const currentIdx = game.userQuestionIndex[userId] ?? 0;
-        const currentQuestion = game.questions[currentIdx];
-        if (!currentQuestion || currentQuestion.id !== questionId) return;
-
-        const isCorrect = answer === currentQuestion.correctAnswer;
-        if (isCorrect) {
-          game.scores[userId] = (game.scores[userId] ?? 0) + 10;
-        }
-
-        game.answeredRecords.push({
-          gameId,
-          questionId,
-          userId,
-          submittedAnswer: answer,
-          isCorrect,
-          timeTakenMs,
-        });
-
-        let nextQuestion: InternalQuestion;
-
-        if (isCorrect) {
-          const nextIdx = currentIdx + 1;
-          game.userQuestionIndex[userId] = nextIdx;
-
-          if (nextIdx >= game.questions.length) {
-            game.questions.push(generateQuestion(game.questions.length));
+          // 1. If an opponent is already in the queue, match immediately!
+          if (waitingQueue.length > 0) {
+            const opponent = waitingQueue.shift()!;
+            if (opponent.id !== userId && opponent.ws.readyState === WebSocket.OPEN) {
+              await startMatch(opponent, connectedUser);
+              return;
+            }
           }
-          nextQuestion = game.questions[nextIdx]!;
-        } else {
-          // If answer is incorrect, stay at the same question for retry
-          nextQuestion = currentQuestion;
+
+          // 2. If no one is waiting in queue, check for any idle online player in lobby
+          const idleCandidate = Array.from(connectedUsers.values()).find((u) => {
+            if (u.id === userId) return false;
+            if (u.ws.readyState !== WebSocket.OPEN) return false;
+
+            const isInGame = Array.from(activeGames.values()).some(
+              (g) => !g.isSettled && g.players.some((p) => p.id === u.id)
+            );
+            if (isInGame) return false;
+
+            const isInInvite = Array.from(pendingInvitations.values()).some(
+              (inv) => inv.fromUser.id === u.id || inv.toUser.id === u.id
+            );
+            if (isInInvite) return false;
+
+            return true;
+          });
+
+          if (idleCandidate) {
+            // Automatically send direct duel challenge to the available online user
+            const invitationId = crypto.randomUUID();
+            const timeout = setTimeout(() => {
+              pendingInvitations.delete(invitationId);
+              sendEvent(connectedUser.ws, {
+                type: "INVITATION",
+                payload: {
+                  invitationId,
+                  status: "EXPIRED",
+                  sender: { id: connectedUser.id, username: connectedUser.username },
+                  recipient: { id: idleCandidate.id, username: idleCandidate.username },
+                  role: "CHALLENGER",
+                },
+              });
+              sendEvent(idleCandidate.ws, {
+                type: "INVITATION",
+                payload: {
+                  invitationId,
+                  status: "EXPIRED",
+                  sender: { id: connectedUser.id, username: connectedUser.username },
+                  recipient: { id: idleCandidate.id, username: idleCandidate.username },
+                  role: "RECIPIENT",
+                },
+              });
+            }, 30000);
+
+            pendingInvitations.set(invitationId, {
+              id: invitationId,
+              fromUser: connectedUser,
+              toUser: idleCandidate,
+              timeout,
+            });
+
+            sendEvent(connectedUser.ws, {
+              type: "QUEUE_STATUS",
+              payload: { status: "IDLE" },
+            });
+            sendEvent(connectedUser.ws, {
+              type: "INVITATION",
+              payload: {
+                invitationId,
+                status: "PENDING",
+                sender: { id: connectedUser.id, username: connectedUser.username },
+                recipient: { id: idleCandidate.id, username: idleCandidate.username },
+                role: "CHALLENGER",
+              },
+            });
+            sendEvent(idleCandidate.ws, {
+              type: "INVITATION",
+              payload: {
+                invitationId,
+                status: "PENDING",
+                sender: { id: connectedUser.id, username: connectedUser.username },
+                recipient: { id: idleCandidate.id, username: idleCandidate.username },
+                role: "RECIPIENT",
+              },
+            });
+            break;
+          }
+
+          // 3. Otherwise wait in queue
+          waitingQueue.push(connectedUser);
+          sendEvent(ws, {
+            type: "QUEUE_STATUS",
+            payload: { status: "WAITING" },
+          });
+          break;
         }
 
-        sendEvent(ws, {
-          type: "ANSWER_RESULT",
-          payload: {
+        case "LEAVE_QUEUE": {
+          const idx = waitingQueue.findIndex((u) => u.id === userId);
+          if (idx !== -1) {
+            waitingQueue.splice(idx, 1);
+          }
+          sendEvent(ws, {
+            type: "QUEUE_STATUS",
+            payload: { status: "IDLE" },
+          });
+          break;
+        }
+
+        case "INVITE_PLAYER": {
+          const targetUserId = action.payload.targetUserId;
+          if (targetUserId === connectedUser.id || targetUserId <= 0) {
+            return;
+          }
+
+          const targetUser = connectedUsers.get(targetUserId);
+          if (!targetUser || targetUser.ws.readyState !== WebSocket.OPEN) {
+            sendEvent(ws, {
+              type: "INVITATION",
+              payload: {
+                invitationId: "",
+                status: "DECLINED",
+                sender: { id: connectedUser.id, username: connectedUser.username },
+                recipient: { id: targetUserId, username: "Player (Offline)" },
+                role: "CHALLENGER",
+                reason: "Player is offline",
+              },
+            });
+            return;
+          }
+
+          // Check if target user is currently in a battle
+          const isTargetInGame = Array.from(activeGames.values()).some(
+            (g) => !g.isSettled && g.players.some((p) => p.id === targetUserId)
+          );
+          if (isTargetInGame) {
+            sendEvent(ws, {
+              type: "INVITATION",
+              payload: {
+                invitationId: "",
+                status: "DECLINED",
+                sender: { id: connectedUser.id, username: connectedUser.username },
+                recipient: { id: targetUserId, username: targetUser.username },
+                role: "CHALLENGER",
+                reason: `${targetUser.username} is currently in battle`,
+              },
+            });
+            return;
+          }
+
+          // Mutual Challenge: check if targetUser has already invited connectedUser
+          for (const [existingInviteId, existingInvite] of pendingInvitations.entries()) {
+            if (
+              existingInvite.fromUser.id === targetUserId &&
+              existingInvite.toUser.id === connectedUser.id
+            ) {
+              clearTimeout(existingInvite.timeout);
+              pendingInvitations.delete(existingInviteId);
+              if (
+                existingInvite.fromUser.ws.readyState === WebSocket.OPEN &&
+                connectedUser.ws.readyState === WebSocket.OPEN
+              ) {
+                await startMatch(existingInvite.fromUser, connectedUser);
+              }
+              return;
+            }
+          }
+
+          // Check if connectedUser already has an outgoing invite to targetUser
+          for (const [existingInviteId, existingInvite] of pendingInvitations.entries()) {
+            if (
+              existingInvite.fromUser.id === connectedUser.id &&
+              existingInvite.toUser.id === targetUserId
+            ) {
+              sendEvent(connectedUser.ws, {
+                type: "INVITATION",
+                payload: {
+                  invitationId: existingInviteId,
+                  status: "PENDING",
+                  sender: { id: connectedUser.id, username: connectedUser.username },
+                  recipient: { id: targetUser.id, username: targetUser.username },
+                  role: "CHALLENGER",
+                },
+              });
+              return;
+            }
+          }
+
+          const invitationId = crypto.randomUUID();
+          const timeout = setTimeout(() => {
+            pendingInvitations.delete(invitationId);
+            sendEvent(connectedUser.ws, {
+              type: "INVITATION",
+              payload: {
+                invitationId,
+                status: "EXPIRED",
+                sender: { id: connectedUser.id, username: connectedUser.username },
+                recipient: { id: targetUser.id, username: targetUser.username },
+                role: "CHALLENGER",
+              },
+            });
+            sendEvent(targetUser.ws, {
+              type: "INVITATION",
+              payload: {
+                invitationId,
+                status: "EXPIRED",
+                sender: { id: connectedUser.id, username: connectedUser.username },
+                recipient: { id: targetUser.id, username: targetUser.username },
+                role: "RECIPIENT",
+              },
+            });
+          }, 30000);
+
+          pendingInvitations.set(invitationId, {
+            id: invitationId,
+            fromUser: connectedUser,
+            toUser: targetUser,
+            timeout,
+          });
+
+          sendEvent(connectedUser.ws, {
+            type: "INVITATION",
+            payload: {
+              invitationId,
+              status: "PENDING",
+              sender: { id: connectedUser.id, username: connectedUser.username },
+              recipient: { id: targetUser.id, username: targetUser.username },
+              role: "CHALLENGER",
+            },
+          });
+          sendEvent(targetUser.ws, {
+            type: "INVITATION",
+            payload: {
+              invitationId,
+              status: "PENDING",
+              sender: { id: connectedUser.id, username: connectedUser.username },
+              recipient: { id: targetUser.id, username: targetUser.username },
+              role: "RECIPIENT",
+            },
+          });
+          break;
+        }
+
+        case "CANCEL_INVITATION": {
+          for (const [inviteId, invite] of pendingInvitations.entries()) {
+            if (invite.fromUser.id === connectedUser.id) {
+              clearTimeout(invite.timeout);
+              pendingInvitations.delete(inviteId);
+              sendEvent(invite.toUser.ws, {
+                type: "INVITATION",
+                payload: {
+                  invitationId: inviteId,
+                  status: "CANCELLED",
+                  sender: { id: connectedUser.id, username: connectedUser.username },
+                  recipient: { id: invite.toUser.id, username: invite.toUser.username },
+                  role: "RECIPIENT",
+                },
+              });
+              sendEvent(connectedUser.ws, {
+                type: "INVITATION",
+                payload: {
+                  invitationId: inviteId,
+                  status: "CANCELLED",
+                  sender: { id: connectedUser.id, username: connectedUser.username },
+                  recipient: { id: invite.toUser.id, username: invite.toUser.username },
+                  role: "CHALLENGER",
+                },
+              });
+            }
+          }
+          break;
+        }
+
+        case "ACCEPT_GAME": {
+          const invite = pendingInvitations.get(action.payload.invitationId);
+          if (!invite) return;
+
+          clearTimeout(invite.timeout);
+          pendingInvitations.delete(action.payload.invitationId);
+
+          if (
+            invite.fromUser.ws.readyState === WebSocket.OPEN &&
+            connectedUser.ws.readyState === WebSocket.OPEN
+          ) {
+            await startMatch(invite.fromUser, connectedUser);
+          }
+          break;
+        }
+
+        case "DECLINE_GAME": {
+          const invite = pendingInvitations.get(action.payload.invitationId);
+          if (!invite) return;
+
+          clearTimeout(invite.timeout);
+          pendingInvitations.delete(action.payload.invitationId);
+
+          sendEvent(invite.fromUser.ws, {
+            type: "INVITATION",
+            payload: {
+              invitationId: action.payload.invitationId,
+              status: "DECLINED",
+              sender: { id: invite.fromUser.id, username: invite.fromUser.username },
+              recipient: { id: connectedUser.id, username: connectedUser.username },
+              role: "CHALLENGER",
+              reason: `${connectedUser.username} declined the challenge`,
+            },
+          });
+          sendEvent(connectedUser.ws, {
+            type: "INVITATION",
+            payload: {
+              invitationId: action.payload.invitationId,
+              status: "DECLINED",
+              sender: { id: invite.fromUser.id, username: invite.fromUser.username },
+              recipient: { id: connectedUser.id, username: connectedUser.username },
+              role: "RECIPIENT",
+            },
+          });
+          break;
+        }
+
+        case "SUBMIT_ANSWER": {
+          const { gameId, questionId, answer, timeTakenMs } = action.payload;
+          const game = activeGames.get(gameId);
+          if (!game || game.isSettled) return;
+
+          const currentIdx = game.userQuestionIndex[userId] ?? 0;
+          const currentQuestion = game.questions[currentIdx];
+          if (!currentQuestion || currentQuestion.id !== questionId) return;
+
+          const isCorrect = answer === currentQuestion.correctAnswer;
+          if (isCorrect) {
+            game.scores[userId] = (game.scores[userId] ?? 0) + 10;
+          }
+
+          game.answeredRecords.push({
+            gameId,
             questionId,
+            userId,
+            submittedAnswer: answer,
             isCorrect,
-            correctAnswer: currentQuestion.correctAnswer,
-            myScore: game.scores[userId] ?? 0,
-            nextQuestion: toPublicQuestion(nextQuestion),
-          },
-        });
+            timeTakenMs,
+          });
 
-        const scoreUpdateEvent: ServerEvent = {
-          type: "SCORE_UPDATE",
-          payload: {
-            scores: game.scores,
-          },
-        };
+          let nextQuestion: InternalQuestion;
 
-        const [p1, p2] = game.players;
-        sendEvent(p1.ws, scoreUpdateEvent);
-        sendEvent(p2.ws, scoreUpdateEvent);
-        break;
+          if (isCorrect) {
+            const nextIdx = currentIdx + 1;
+            game.userQuestionIndex[userId] = nextIdx;
+
+            if (nextIdx >= game.questions.length) {
+              game.questions.push(generateQuestion(game.questions.length));
+            }
+            nextQuestion = game.questions[nextIdx]!;
+          } else {
+            // If answer is incorrect, stay at the same question for retry
+            nextQuestion = currentQuestion;
+          }
+
+          sendEvent(ws, {
+            type: "ANSWER_RESULT",
+            payload: {
+              questionId,
+              isCorrect,
+              correctAnswer: currentQuestion.correctAnswer,
+              myScore: game.scores[userId] ?? 0,
+              nextQuestion: toPublicQuestion(nextQuestion),
+            },
+          });
+
+          const scoreUpdateEvent: ServerEvent = {
+            type: "SCORE_UPDATE",
+            payload: {
+              scores: game.scores,
+            },
+          };
+
+          const [p1, p2] = game.players;
+          sendEvent(p1.ws, scoreUpdateEvent);
+          if (p2.id > 0) {
+            sendEvent(p2.ws, scoreUpdateEvent);
+          }
+          break;
+        }
       }
-    }
-  });
+    };
 
-  ws.on("close", () => {
-    if (connectedUsers.get(userId)?.ws === ws) {
-      cleanupUser(userId);
-    }
-  });
+    ws.on("close", () => {
+      if (connectedUsers.get(userId)?.ws === ws) {
+        cleanupUser(userId);
+      }
+    });
 
-  ws.on("error", (err) => {
-    console.error(`[WebSocket] Error on client #${userId}:`, err);
-    if (connectedUsers.get(userId)?.ws === ws) {
-      cleanupUser(userId);
+    ws.on("error", (err) => {
+      console.error(`[WebSocket] Error on client #${userId}:`, err);
+      if (connectedUsers.get(userId)?.ws === ws) {
+        cleanupUser(userId);
+      }
+    });
+
+    // 2. Mark ready and flush any buffered early actions
+    isReady = true;
+    while (earlyMessageQueue.length > 0) {
+      const earlyMsg = earlyMessageQueue.shift()!;
+      await processMessage(earlyMsg);
     }
+  })().catch((err) => {
+    console.error("[WebSocket] Unhandled error in connection initialization:", err);
+    ws.close(1011, "Internal server error");
   });
 });

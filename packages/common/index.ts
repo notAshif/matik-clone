@@ -24,6 +24,7 @@ export type MathOperator = z.infer<typeof mathOperatorSchema>;
 export const safeUserSchema = z.object({
   id: z.number(),
   username: z.string(),
+  email: z.string().optional(),
   rating: z.number().optional(),
 });
 export type SafeUser = z.infer<typeof safeUserSchema>;
@@ -73,6 +74,13 @@ export const declineGameSchema = z.object({
   }),
 });
 
+export const cancelInvitationSchema = z.object({
+  type: z.literal("CANCEL_INVITATION"),
+  payload: z.object({
+    invitationId: z.string().optional(),
+  }).optional().default({}),
+});
+
 export const submitAnswerSchema = z.object({
   type: z.literal("SUBMIT_ANSWER"),
   payload: z.object({
@@ -89,6 +97,7 @@ export const clientActionSchema = z.discriminatedUnion("type", [
   invitePlayerSchema,
   acceptGameSchema,
   declineGameSchema,
+  cancelInvitationSchema,
   submitAnswerSchema,
 ]);
 
@@ -108,19 +117,17 @@ export type QueueStatusEvent = {
   };
 };
 
-export type GameInvitationEvent = {
-  type: "GAME_INVITATION";
-  payload: {
-    invitationId: string;
-    from: SafeUser;
-  };
-};
+export type InvitationStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED";
 
-export type InvitationDeclinedEvent = {
-  type: "INVITATION_DECLINED";
+export type InvitationEvent = {
+  type: "INVITATION";
   payload: {
     invitationId: string;
-    by: SafeUser;
+    status: InvitationStatus;
+    sender: SafeUser;
+    recipient: SafeUser;
+    role: "CHALLENGER" | "RECIPIENT";
+    reason?: string;
   };
 };
 
@@ -185,8 +192,7 @@ export type GameOverEvent = {
 export type ServerEvent =
   | OnlineUsersEvent
   | QueueStatusEvent
-  | GameInvitationEvent
-  | InvitationDeclinedEvent
+  | InvitationEvent
   | StartGameEvent
   | AnswerResultEvent
   | ScoreUpdateEvent

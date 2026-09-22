@@ -1,7 +1,8 @@
 :root {
-  --font-game: 'Fredoka', system-ui, -apple-system, sans-serif;
-  --font-pixel: 'Press Start 2P', monospace;
-  --font-arcade: 'Chakra Petch', sans-serif;
+  --font-game: 'Pixelify Sans', cursive, sans-serif;
+  --font-pixel: 'Pixelify Sans', monospace, sans-serif;
+  --font-arcade: 'Pixelify Sans', cursive, sans-serif;
+  --font-logo: 'Pixelify Sans', cursive, sans-serif;
 
   /* 2D Game Palette */
   --game-gold-light: #fef08a;
@@ -400,3 +401,51 @@
 .animate-radar-sweep {
   animation: radarSweep 2.5s linear infinite;
 }
+
+/* 2D Game Logo Typography Utilities */
+.font-logo {
+  font-family: var(--font-logo);
+}
+
+.game-logo-text {
+  font-family: var(--font-logo);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-shadow: 0 3px 0 #000, 0 4px 6px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes gameShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.animate-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.08) 35%,
+    rgba(255, 255, 255, 0.16) 50%,
+    rgba(255, 255, 255, 0.08) 65%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: gameShimmer 1.8s infinite;
+  pointer-events: none;
+}
+

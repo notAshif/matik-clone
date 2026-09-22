@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { SwordsIcon } from "../components/icons";
 import { GamePanel } from "../design-system/GamePanel";
 import { GameInput } from "../design-system/GameInput";
 import { GameButton } from "../design-system/GameButton";
+import logoImg from "../assets/logo.png";
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -54,12 +54,17 @@ export const LoginPage: React.FC = () => {
         >
           {/* Logo & Headline */}
           <div className="flex flex-col items-center text-center mb-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-b from-amber-400 to-amber-600 border-3 border-amber-300 shadow-[0_4px_0_#451a03] flex items-center justify-center mb-3">
-              <SwordsIcon className="w-9 h-9 text-[#451a03] drop-shadow" />
+            <div className="w-20 h-20 rounded-2xl bg-[#0e1626] border-3 border-amber-400/90 shadow-[0_4px_0_#060a12] flex items-center justify-center mb-3 p-2">
+              <img
+                src={logoImg}
+                alt="MATIK"
+                className="w-full h-full object-contain filter drop-shadow"
+                style={{ imageRendering: "pixelated" }}
+              />
             </div>
             <h1
-              className="text-3xl font-black text-white drop-shadow-[0_2px_0_#000] tracking-wider"
-              style={{ fontFamily: "var(--font-game)" }}
+              className="text-3xl font-bold text-white drop-shadow-[0_2px_0_#000] tracking-wider game-logo-text"
+              style={{ fontFamily: "var(--font-logo)" }}
             >
               MATIK ARENA
             </h1>

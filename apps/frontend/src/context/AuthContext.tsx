@@ -40,8 +40,17 @@ const API_BASE = "http://localhost:8000/api/v1/auth";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("matik_token"));
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<UserProfile | null>(() => {
+    try {
+      const cached = localStorage.getItem("matik_user");
+      return cached ? (JSON.parse(cached) as UserProfile) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(
+    () => !localStorage.getItem("matik_user") && !!localStorage.getItem("matik_token")
+  );
 
   const fetchProfile = async (authToken: string) => {
     try {
@@ -55,6 +64,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const json = await res.json();
         if (json.data?.user) {
           setUser(json.data.user);
+          try {
+            localStorage.setItem("matik_user", JSON.stringify(json.data.user));
+          } catch {}
           return;
         }
       }
@@ -89,6 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     localStorage.removeItem("matik_token");
+    localStorage.removeItem("matik_user");
     setToken(null);
     setUser(null);
   };

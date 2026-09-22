@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "./design-system/theme.css";
 
+@theme {
+  --font-sans: 'Pixelify Sans', cursive, sans-serif;
+  --font-mono: 'Pixelify Sans', monospace, sans-serif;
+}
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   20%, 60% { transform: translateX(-8px); }

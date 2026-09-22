@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useWebSocket } from "../context/WebSocketContext";
 import { GameOverModal } from "../components/GameOverModal";
-import { RadarMatchmaker } from "../components/RadarMatchmaker";
 import { TickIcon, CrossIcon, TimerIcon } from "../components/icons";
 import { GamePanel } from "../design-system/GamePanel";
 import { GameBar } from "../design-system/GameBar";
 import { GameButton } from "../design-system/GameButton";
 import { FloatingScore } from "../design-system/FloatingScore";
+import { QuestionSkeleton } from "../design-system/Skeleton";
 import { SoundFX } from "../design-system/sound";
 import type { PublicQuestion } from "@repo/common";
 
@@ -20,7 +20,6 @@ export const GamePage: React.FC = () => {
     liveScores,
     gameOver,
     submitAnswer,
-    leaveQueue,
     joinQueue,
   } = useWebSocket();
 
@@ -29,9 +28,12 @@ export const GamePage: React.FC = () => {
   const [currentQuestion, setCurrentQuestion] = useState<PublicQuestion | null>(null);
   const [answerInput, setAnswerInput] = useState("");
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
-  const [floatingScoreText, setFloatingScoreText] = useState<{ text: string; type: "positive" | "negative"; key: number } | null>(null);
+  const [floatingScoreText, setFloatingScoreText] = useState<{
+    text: string;
+    type: "positive" | "negative";
+    key: number;
+  } | null>(null);
   const [timeLeft, setTimeLeft] = useState(60);
-  const [showRadar, setShowRadar] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const questionStartTimeRef = useRef<number>(Date.now());
@@ -129,18 +131,7 @@ export const GamePage: React.FC = () => {
       {gameOver && (
         <GameOverModal
           onSearchNext={() => {
-            setShowRadar(true);
             joinQueue();
-          }}
-        />
-      )}
-
-      {/* Radar searching modal */}
-      {showRadar && (
-        <RadarMatchmaker
-          onCancel={() => {
-            setShowRadar(false);
-            leaveQueue();
             navigate("/");
           }}
         />
@@ -263,9 +254,7 @@ export const GamePage: React.FC = () => {
             </GamePanel>
           </div>
         ) : (
-          <div className="game-ribbon game-ribbon-blue animate-pulse">
-            SYNCHRONIZING BATTLE ARENA...
-          </div>
+          <QuestionSkeleton />
         )}
       </main>
 

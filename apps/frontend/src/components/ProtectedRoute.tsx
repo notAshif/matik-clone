@@ -5,16 +5,12 @@ import { useAuth } from "../context/AuthContext";
 export const ProtectedRoute: React.FC = () => {
   const { token, isLoading } = useAuth();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-emerald-500"></div>
-      </div>
-    );
+  if (!token && !isLoading) {
+    return <Navigate to="/login" replace />;
   }
 
-  if (!token) {
-    return <Navigate to="/login" replace />;
+  if (isLoading && !token) {
+    return null;
   }
 
   return <Outlet />;
