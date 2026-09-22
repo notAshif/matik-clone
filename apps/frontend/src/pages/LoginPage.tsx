@@ -57,7 +57,7 @@ export const LoginPage: React.FC = () => {
             <div className="w-20 h-20 rounded-2xl bg-[#0e1626] border-3 border-amber-400/90 shadow-[0_4px_0_#060a12] flex items-center justify-center mb-3 p-2">
               <img
                 src={logoImg}
-                alt="MATIK"
+                alt="ArithmeStrike"
                 className="w-full h-full object-contain filter drop-shadow"
                 style={{ imageRendering: "pixelated" }}
               />
@@ -66,7 +66,7 @@ export const LoginPage: React.FC = () => {
               className="text-3xl font-bold text-white drop-shadow-[0_2px_0_#000] tracking-wider game-logo-text"
               style={{ fontFamily: "var(--font-logo)" }}
             >
-              MATIK ARENA
+              ARITHMESTRIKE ARENA
             </h1>
             <p className="text-xs font-bold text-amber-400 uppercase tracking-widest mt-1">
               Competitive 1v1 Speed Arithmetic
@@ -81,7 +81,7 @@ export const LoginPage: React.FC = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="player@matik.com"
+              placeholder="player@arithmestrike.com"
             />
 
             <GameInput

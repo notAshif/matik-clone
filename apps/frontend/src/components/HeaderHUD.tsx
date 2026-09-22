@@ -32,12 +32,12 @@ export const HeaderHUD: React.FC<HeaderHUDProps> = ({ compact = false }) => {
         <Link
           to="/"
           className="flex items-center space-x-2 sm:space-x-3 group cursor-pointer hover:opacity-95 transition-opacity shrink-0"
-          title="MATIK - Speed Math Duel"
+          title="ArithmeStrike - Speed Math Duel"
         >
           <div className="relative w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center shrink-0">
             <img
               src={logoImg}
-              alt="MATIK Logo"
+              alt="ArithmeStrike Logo"
               className="w-full h-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] group-hover:scale-105 transition-transform"
               style={{ imageRendering: "pixelated" }}
             />
@@ -49,7 +49,7 @@ export const HeaderHUD: React.FC<HeaderHUDProps> = ({ compact = false }) => {
                 className="font-bold text-xl sm:text-2xl tracking-wider text-white drop-shadow-[0_3px_0_#000] game-logo-text"
                 style={{ fontFamily: "var(--font-logo)" }}
               >
-                MATIK
+                ARITHMESTRIKE
               </span>
               <span className="game-ribbon game-ribbon-green text-[8px] sm:text-[9px]! py-0.5! px-1.5 sm:px-2! hidden xs:inline-block">
                 ARENA 1v1

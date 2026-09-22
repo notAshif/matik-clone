@@ -1,8 +1,8 @@
-# Matik ⚡
+# ArithmeStrike ⚡
 
 > **Real-Time 1v1 Speed Math Battle Arena**
 
-Matik is a competitive, real-time multiplayer arithmetic duel platform. Players compete head-to-head against opponents, solving algorithmic math problems under high-pressure countdown timers to score points, claim victory, and climb the global Elo leaderboard.
+ArithmeStrike is a competitive, real-time multiplayer arithmetic duel platform. Players compete head-to-head against opponents, solving algorithmic math problems under high-pressure countdown timers to score points, claim victory, and climb the global Elo leaderboard.
 
 Built as a high-performance TypeScript monorepo powered by **Bun**, **Turborepo**, **React 19**, **Vite**, **Tailwind CSS v4**, **Express**, **WebSocket (`ws`)**, and **Drizzle ORM** with **PostgreSQL**.
 

@@ -73,7 +73,7 @@ export const RegisterPage: React.FC = () => {
             <div className="w-20 h-20 rounded-2xl bg-[#0e1626] border-3 border-amber-400/90 shadow-[0_4px_0_#060a12] flex items-center justify-center mb-3 p-2">
               <img
                 src={logoImg}
-                alt="MATIK"
+                alt="ArithmeStrike"
                 className="w-full h-full object-contain filter drop-shadow"
                 style={{ imageRendering: "pixelated" }}
               />
@@ -97,7 +97,7 @@ export const RegisterPage: React.FC = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="player@matik.com"
+              placeholder="player@arithmestrike.com"
             />
 
             <GameInput
