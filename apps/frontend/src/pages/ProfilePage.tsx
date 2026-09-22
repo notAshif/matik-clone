@@ -7,6 +7,7 @@ import { GamePanel } from "../design-system/GamePanel";
 import { GameButton } from "../design-system/GameButton";
 import { EloPill, getRankTier } from "../design-system/GameBadge";
 import { ProfileMainSkeleton } from "../design-system/Skeleton";
+import { PlayerAvatar } from "../components/PlayerAvatar";
 
 export const ProfilePage: React.FC = () => {
   const { user, refreshProfile, isLoading } = useAuth();
@@ -21,7 +22,6 @@ export const ProfilePage: React.FC = () => {
       ? user.ratings[user.ratings.length - 1]?.ratingAfter
       : 1200;
 
-  const initial = user?.username ? user.username.charAt(0).toUpperCase() : "P";
   const rankInfo = getRankTier(currentRating);
 
   const totalMatches = user?.gameMembers?.length ?? 0;
@@ -74,12 +74,14 @@ export const ProfilePage: React.FC = () => {
         >
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* Big Avatar Crest */}
-            <div className="relative shrink-0">
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-b from-indigo-500 via-indigo-700 to-indigo-950 border-4 border-amber-400 shadow-[0_6px_0_#451a03] flex items-center justify-center text-4xl sm:text-5xl font-black text-amber-300 drop-shadow-[0_2px_0_#000]">
-                {initial}
-              </div>
-              <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-400 border-3 border-[#0d1322] flex items-center justify-center text-xs" />
-            </div>
+            <PlayerAvatar
+              email={user.email}
+              username={user.username}
+              size="xl"
+              variant="gold"
+              shape="rounded"
+              showOnlineDot
+            />
 
             {/* Identity & Rank */}
             <div className="flex-1 text-center sm:text-left space-y-2">

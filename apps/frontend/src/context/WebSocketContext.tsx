@@ -155,15 +155,15 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
           setOutgoingInvite(null);
           setIncomingInvite(null);
           if (role === "CHALLENGER") {
-            setInviteFeedback(reason || `${recipient.username} declined or is unavailable.`);
-            setTimeout(() => setInviteFeedback(null), 4000);
+            setInviteFeedback(reason || `${recipient.username} declined. Continuing to search for opponent...`);
+            setTimeout(() => setInviteFeedback(null), 5000);
           }
         } else if (status === "CANCELLED" || status === "EXPIRED") {
           setOutgoingInvite(null);
           setIncomingInvite(null);
           if (status === "EXPIRED" && role === "CHALLENGER") {
-            setInviteFeedback("Challenge expired without response.");
-            setTimeout(() => setInviteFeedback(null), 4000);
+            setInviteFeedback("Challenge timed out without response. Continuing to search for opponent...");
+            setTimeout(() => setInviteFeedback(null), 5000);
           }
         } else if (status === "ACCEPTED") {
           setOutgoingInvite(null);

@@ -7,6 +7,7 @@ import { GamePanel } from "../design-system/GamePanel";
 import { GameButton } from "../design-system/GameButton";
 import { SoundFX } from "../design-system/sound";
 import { EloPill } from "../design-system/GameBadge";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 interface GameOverModalProps {
   onSearchNext: () => void;
@@ -168,7 +169,10 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({ onSearchNext }) =>
           {/* Match Score Comparison */}
           <div className="grid grid-cols-2 gap-3 mb-5">
             <div className="game-inset p-3 text-left">
-              <span className="text-[10px] font-black uppercase text-amber-400 block">YOU</span>
+              <div className="flex items-center space-x-1.5 mb-1">
+                <PlayerAvatar email={user.email} username={user.username} size="xs" variant="green" />
+                <span className="text-[10px] font-black uppercase text-amber-400 block truncate">YOU</span>
+              </div>
               <div className="text-2xl font-black text-emerald-400 font-mono mt-0.5 tabular-nums">
                 {myScore}{" "}
                 <span className="text-xs text-slate-400 font-sans font-bold">pts</span>
@@ -179,9 +183,12 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({ onSearchNext }) =>
             </div>
 
             <div className="game-inset p-3 text-left">
-              <span className="text-[10px] font-black uppercase text-indigo-400 block truncate">
-                {opponent.username}
-              </span>
+              <div className="flex items-center space-x-1.5 mb-1">
+                <PlayerAvatar email={opponent.email} username={opponent.username} size="xs" variant="indigo" />
+                <span className="text-[10px] font-black uppercase text-indigo-400 block truncate">
+                  {opponent.username}
+                </span>
+              </div>
               <div className="text-2xl font-black text-indigo-400 font-mono mt-0.5 tabular-nums">
                 {opponentScore}{" "}
                 <span className="text-xs text-slate-400 font-sans font-bold">pts</span>
