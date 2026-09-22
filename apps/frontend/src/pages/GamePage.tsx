@@ -5,12 +5,12 @@ import { useWebSocket } from "../context/WebSocketContext";
 import { GameOverModal } from "../components/GameOverModal";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { TickIcon, CrossIcon, TimerIcon } from "../components/icons";
-import { GamePanel } from "../design-system/GamePanel";
-import { GameBar } from "../design-system/GameBar";
-import { GameButton } from "../design-system/GameButton";
-import { FloatingScore } from "../design-system/FloatingScore";
-import { QuestionSkeleton } from "../design-system/Skeleton";
-import { SoundFX } from "../design-system/sound";
+import { GamePanel } from "../game-ui/GamePanel";
+import { GameBar } from "../game-ui/GameBar";
+import { GameButton } from "../game-ui/GameButton";
+import { FloatingScore } from "../game-ui/FloatingScore";
+import { QuestionSkeleton } from "../game-ui/Skeleton";
+import { SoundFX } from "../game-ui/sound";
 import type { PublicQuestion } from "@repo/common";
 
 export const GamePage: React.FC = () => {
@@ -157,7 +157,7 @@ export const GamePage: React.FC = () => {
       <header className="max-w-5xl w-full mx-auto grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 md:gap-6 z-10">
         {/* Left: Player 1 Card */}
         <div className="flex flex-col items-start min-w-0">
-          <div className="game-panel p-2! sm:p-3! w-full max-w-[240px]">
+          <div className="game-panel p-2! sm:p-3! w-full max-w-60">
             <div className="flex items-center space-x-2 sm:space-x-2.5 min-w-0">
               <PlayerAvatar
                 email={user?.email}
@@ -183,7 +183,7 @@ export const GamePage: React.FC = () => {
                 max={15}
                 color="green"
                 label={`Solved: ${mySolvedCount}`}
-                className="!text-[9px] sm:!text-[10px]"
+                className="text-[9px]! sm:text-[10px]!"
               />
             </div>
           </div>
@@ -216,7 +216,7 @@ export const GamePage: React.FC = () => {
 
         {/* Right: Opponent Card */}
         <div className="flex flex-col items-end min-w-0">
-          <div className="game-panel p-2! sm:p-3! w-full max-w-[240px] text-right">
+          <div className="game-panel p-2! sm:p-3! w-full max-w-60 text-right">
             <div className="flex items-center justify-end space-x-2 sm:space-x-2.5 min-w-0">
               <div className="truncate min-w-0">
                 <div className="font-black text-xs sm:text-sm text-white truncate drop-shadow">
@@ -242,7 +242,7 @@ export const GamePage: React.FC = () => {
                 max={15}
                 color="indigo"
                 label={`Solved: ${opponentSolvedCount}`}
-                className="!text-[9px] sm:!text-[10px]"
+                className="text-[9px]! sm:text-[10px]!"
               />
             </div>
           </div>
@@ -305,10 +305,10 @@ export const GamePage: React.FC = () => {
               autoFocus
               className={`game-input h-13 sm:h-14 px-4 pr-12 text-center text-2xl sm:text-3xl font-mono font-black border-3 transition-colors duration-150 focus:outline-none placeholder:text-slate-600 ${
                 feedback === "correct"
-                  ? "!border-emerald-500 !ring-4 !ring-emerald-500/25 !text-emerald-300 bg-emerald-950/30"
+                  ? "border-emerald-500! ring-4! ring-emerald-500/25! text-emerald-300! bg-emerald-950/30"
                   : feedback === "wrong"
-                  ? "!border-rose-500 !ring-4 !ring-rose-500/25 !text-rose-300 bg-rose-950/30 animate-shake"
-                  : "!border-[#334155] focus:!border-amber-400 text-white"
+                  ? "border-rose-500! ring-4! ring-rose-500/25! text-rose-300! bg-rose-950/30 animate-shake"
+                  : "focus:border-amber-400! text-white"
               }`}
             />
 

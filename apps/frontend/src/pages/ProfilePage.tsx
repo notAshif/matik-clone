@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { HeaderHUD } from "../components/HeaderHUD";
 import { TrophyIcon, SwordsIcon, CrownIcon, ShieldIcon } from "../components/icons";
-import { GamePanel } from "../design-system/GamePanel";
-import { GameButton } from "../design-system/GameButton";
-import { EloPill, getRankTier } from "../design-system/GameBadge";
-import { ProfileMainSkeleton } from "../design-system/Skeleton";
+import { GamePanel } from "../game-ui/GamePanel";
+import { GameButton } from "../game-ui/GameButton";
+import { EloPill, getRankTier } from "../game-ui/GameBadge";
+import { ProfileMainSkeleton } from "../game-ui/Skeleton";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 
 export const ProfilePage: React.FC = () => {
@@ -55,7 +55,7 @@ export const ProfilePage: React.FC = () => {
                 variant="slate"
                 btnSize="sm"
                 onClick={() => navigate("/")}
-                className="!px-3 !py-1.5"
+                className="px-3! py-1.5!"
               >
                 ← Back to Arena
               </GameButton>
@@ -70,7 +70,7 @@ export const ProfilePage: React.FC = () => {
           variant="gold"
           ribbonTitle="CHAMPION PROFILE"
           ribbonColor="gold"
-          className="!p-6 sm:!p-8 !pt-10"
+          className="p-6! sm:p-8! pt-10!"
         >
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* Big Avatar Crest */}
@@ -173,7 +173,7 @@ export const ProfilePage: React.FC = () => {
         <GamePanel
           ribbonTitle="COMBAT HISTORY"
           ribbonColor="blue"
-          className="!pt-8"
+          className="pt-8!"
         >
           <div className="flex items-center justify-between pb-3 border-b-2 border-[#20293d]">
             <div className="flex items-center space-x-2">
@@ -187,7 +187,7 @@ export const ProfilePage: React.FC = () => {
             </span>
           </div>
 
-          <div className="mt-4 space-y-2.5 max-h-[500px] overflow-y-auto pr-1">
+          <div className="mt-4 space-y-2.5 max-h-125 overflow-y-auto pr-1">
             {matchHistory.length === 0 ? (
               <div className="text-center py-10 space-y-2">
                 <TrophyIcon className="w-10 h-10 text-slate-600 mx-auto" />
@@ -200,14 +200,14 @@ export const ProfilePage: React.FC = () => {
                 return (
                   <div
                     key={record.id ?? index}
-                    className="game-inset !p-3.5 flex items-center justify-between border-2 hover:border-[#384869] transition-colors"
+                    className="game-inset p-3.5! flex items-center justify-between border-2 hover:border-[#384869] transition-colors"
                   >
                     <div className="flex items-center space-x-3.5">
                       <div
                         className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm border-2 shadow-[0_2px_0_#000] ${
                           isWin
-                            ? "bg-gradient-to-b from-amber-400 to-amber-600 border-amber-300 text-[#451a03]"
-                            : "bg-gradient-to-b from-rose-600 to-rose-800 border-rose-400 text-white"
+                            ? "bg-linear-to-b from-amber-400 to-amber-600 border-amber-300 text-[#451a03]"
+                            : "bg-linear-to-b from-rose-600 to-rose-800 border-rose-400 text-white"
                         }`}
                       >
                         {isWin ? "W" : "L"}

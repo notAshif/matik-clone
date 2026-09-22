@@ -1,9 +1,9 @@
 import React, { useEffect } from "react";
 import { useWebSocket } from "../context/WebSocketContext";
 import { SwordsIcon } from "./icons";
-import { GamePanel } from "../design-system/GamePanel";
-import { GameButton } from "../design-system/GameButton";
-import { SoundFX } from "../design-system/sound";
+import { GamePanel } from "../game-ui/GamePanel";
+import { GameButton } from "../game-ui/GameButton";
+import { SoundFX } from "../game-ui/sound";
 
 export const InvitationToast: React.FC = () => {
   const { incomingInvite, acceptGame, declineGame } = useWebSocket();

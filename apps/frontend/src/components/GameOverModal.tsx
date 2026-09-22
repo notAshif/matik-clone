@@ -3,10 +3,10 @@ import { useWebSocket } from "../context/WebSocketContext";
 import { useAuth } from "../context/AuthContext";
 import { TrophyIcon } from "./icons";
 import { useNavigate } from "react-router-dom";
-import { GamePanel } from "../design-system/GamePanel";
-import { GameButton } from "../design-system/GameButton";
-import { SoundFX } from "../design-system/sound";
-import { EloPill } from "../design-system/GameBadge";
+import { GamePanel } from "../game-ui/GamePanel";
+import { GameButton } from "../game-ui/GameButton";
+import { SoundFX } from "../game-ui/sound";
+import { EloPill } from "../game-ui/GameBadge";
 import { PlayerAvatar } from "./PlayerAvatar";
 
 interface GameOverModalProps {

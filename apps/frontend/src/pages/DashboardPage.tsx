@@ -5,8 +5,8 @@ import { useWebSocket } from "../context/WebSocketContext";
 import { HeaderHUD } from "../components/HeaderHUD";
 import { OnlineStoryBar } from "../components/OnlineStoryBar";
 import { SwordsIcon } from "../components/icons";
-import { GamePanel } from "../design-system/GamePanel";
-import { GameButton } from "../design-system/GameButton";
+import { GamePanel } from "../game-ui/GamePanel";
+import { GameButton } from "../game-ui/GameButton";
 
 export const DashboardPage: React.FC = () => {
   const { refreshProfile } = useAuth();

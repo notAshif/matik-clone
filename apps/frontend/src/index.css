@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "./design-system/theme.css";
+@import "./game-ui/theme.css";
 
 @theme {
   --font-sans: 'Pixelify Sans', cursive, sans-serif;

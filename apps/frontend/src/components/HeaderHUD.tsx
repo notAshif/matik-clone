@@ -3,9 +3,9 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { LogoutIcon, SoundOnIcon, SoundOffIcon } from "./icons";
 import { PlayerAvatar } from "./PlayerAvatar";
-import { EloPill } from "../design-system/GameBadge";
-import { GameButton } from "../design-system/GameButton";
-import { isSoundMuted, toggleSoundMute, subscribeSoundMute } from "../design-system/sound";
+import { EloPill } from "../game-ui/GameBadge";
+import { GameButton } from "../game-ui/GameButton";
+import { isSoundMuted, toggleSoundMute, subscribeSoundMute } from "../game-ui/sound";
 import logoImg from "../assets/logo.png";
 
 interface HeaderHUDProps {

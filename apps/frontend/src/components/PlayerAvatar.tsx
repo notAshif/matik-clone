@@ -121,7 +121,7 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
             src={avatarUrl}
             alt={alt || username || "Avatar"}
             onError={() => setImgError(true)}
-            className={`w-full h-full object-cover ${roundedClass} outline outline-1 outline-white/15`}
+            className={`w-full h-full object-cover ${roundedClass} outline outline-white/15`}
             loading="lazy"
           />
         ) : (

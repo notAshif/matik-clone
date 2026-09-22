@@ -4,7 +4,7 @@ import { useWebSocket } from "../context/WebSocketContext";
 import { useAuth } from "../context/AuthContext";
 import { SwordsIcon } from "./icons";
 import { PlayerAvatar } from "./PlayerAvatar";
-import { SoundFX } from "../design-system/sound";
+import { SoundFX } from "../game-ui/sound";
 
 export const OnlineStoryBar: React.FC = () => {
   const { onlineUsers, invitePlayer, isConnected } = useWebSocket();

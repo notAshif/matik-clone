@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { GamePanel } from "../design-system/GamePanel";
-import { GameInput } from "../design-system/GameInput";
-import { GameButton } from "../design-system/GameButton";
+import { GamePanel } from "../game-ui/GamePanel";
+import { GameInput } from "../game-ui/GameInput";
+import { GameButton } from "../game-ui/GameButton";
 import logoImg from "../assets/logo.png";
 
 export const LoginPage: React.FC = () => {
@@ -50,7 +50,7 @@ export const LoginPage: React.FC = () => {
           variant="gold"
           ribbonTitle="ARENA PORTAL"
           ribbonColor="gold"
-          className="!p-8 !pt-12"
+          className="p-8! pt-12!"
         >
           {/* Logo & Headline */}
           <div className="flex flex-col items-center text-center mb-6">
