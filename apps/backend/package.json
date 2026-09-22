@@ -8,6 +8,9 @@
     "@repo/database": "*",
     "@repo/common": "*"
   },
+  "scripts": {
+    "dev": "bun ./index.ts"
+  },
   "peerDependencies": {
     "typescript": "^7"
   },
