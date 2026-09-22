@@ -16,7 +16,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "paths": {
-      "@repo/common": ["../../../packages/common/index.ts"]
+      "@repo/common": ["../../packages/common/index.ts"]
     },
 
     /* Linting */

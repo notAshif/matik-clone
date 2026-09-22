@@ -2,7 +2,13 @@
   "name": "@repo/database",
   "module": "index.ts",
   "type": "module",
-  "private": true,
+  "scripts": {
+    "migrate": "bun ./src/migrate.ts",
+    "db:migrate": "bun ./src/migrate.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/pg": "^8.23.1",

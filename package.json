@@ -3,7 +3,12 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "bun ./scripts/dev.ts",
+    "dev:turbo": "turbo run dev",
+    "db:migrate": "bun --filter @repo/database migrate",
+    "db:generate": "bun --filter @repo/database db:generate",
+    "db:push": "bun --filter @repo/database db:push",
+    "db:studio": "bun --filter @repo/database db:studio",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"
