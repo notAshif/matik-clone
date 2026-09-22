@@ -43,6 +43,7 @@
         "jsonwebtoken": "^9.0.3",
       },
       "devDependencies": {
+        "@repo/common": "*",
         "@repo/database": "*",
         "@types/bun": "latest",
       },

@@ -6,6 +6,9 @@
   "devDependencies": {
     "@types/bun": "latest"
   },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
   "main": "index.ts",
   "exports": {
     ".": "./index.ts",

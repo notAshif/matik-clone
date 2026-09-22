@@ -5,10 +5,14 @@
   "private": true,
   "devDependencies": {
     "@types/bun": "latest",
-    "@repo/database": "*"
+    "@repo/database": "*",
+    "@repo/common": "*"
   },
   "peerDependencies": {
     "typescript": "^7"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.10",
