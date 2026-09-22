@@ -1,6 +1,7 @@
 import {
   games as dbGames,
   gameMembers,
+  questions as dbQuestions,
   questionAnswers,
   ratings,
   db,
@@ -105,7 +106,7 @@ export async function startMatch(
   player2: ConnectedUser,
   timeLimit = 60
 ): Promise<ActiveGame> {
-  const questions = generateQuestionBatch(60);
+  let questions = generateQuestionBatch(60);
   const now = new Date();
 
   let gameId = Math.floor(Math.random() * 1000000) + 1;
@@ -120,6 +121,45 @@ export async function startMatch(
       .returning({ id: dbGames.id });
     if (inserted?.id) {
       gameId = inserted.id;
+
+      try {
+        const insertedQuestions = await db
+          .insert(dbQuestions)
+          .values(
+            questions.map((q) => ({
+              gameId,
+              operand1: q.operand1,
+              operand2: q.operand2,
+              operator: q.operator,
+              correctAnswer: q.correctAnswer,
+              orderIndex: q.orderIndex,
+            }))
+          )
+          .returning({
+            id: dbQuestions.id,
+            orderIndex: dbQuestions.orderIndex,
+            operand1: dbQuestions.operand1,
+            operand2: dbQuestions.operand2,
+            operator: dbQuestions.operator,
+            correctAnswer: dbQuestions.correctAnswer,
+          });
+
+        if (insertedQuestions && insertedQuestions.length > 0) {
+          questions = insertedQuestions.map((q) => ({
+            id: q.id,
+            orderIndex: q.orderIndex,
+            operand1: q.operand1,
+            operand2: q.operand2,
+            operator: q.operator,
+            correctAnswer: q.correctAnswer,
+          }));
+        }
+      } catch (qErr) {
+        console.warn(
+          `[WebSocket] Failed to insert questions into db for game #${gameId}:`,
+          qErr
+        );
+      }
     }
   } catch (err) {
     console.warn(
@@ -314,16 +354,65 @@ export async function finishGame(
 
     const realAnswers = game.answeredRecords.filter((ans) => ans.userId > 0);
     if (realAnswers.length > 0) {
-      await db.insert(questionAnswers).values(
-        realAnswers.map((ans) => ({
-          gameId,
-          questionId: ans.questionId,
-          userId: ans.userId,
-          submittedAnswer: ans.submittedAnswer,
-          isCorrect: ans.isCorrect,
-          timeTakenMs: ans.timeTakenMs,
-        }))
-      );
+      try {
+        const existingQRows = await db
+          .select({ id: dbQuestions.id })
+          .from(dbQuestions)
+          .where(eq(dbQuestions.gameId, gameId));
+        const existingQIds = new Set(existingQRows.map((r) => r.id));
+
+        const missingQuestions = game.questions.filter((q) => !existingQIds.has(q.id));
+        if (missingQuestions.length > 0) {
+          const reinserted = await db
+            .insert(dbQuestions)
+            .values(
+              missingQuestions.map((q) => ({
+                gameId,
+                operand1: q.operand1,
+                operand2: q.operand2,
+                operator: q.operator,
+                correctAnswer: q.correctAnswer,
+                orderIndex: q.orderIndex,
+              }))
+            )
+            .returning({ id: dbQuestions.id, orderIndex: dbQuestions.orderIndex });
+
+          const orderToNewId = new Map(reinserted.map((r) => [r.orderIndex, r.id]));
+          for (const ans of realAnswers) {
+            if (!existingQIds.has(ans.questionId)) {
+              const q = game.questions.find((gq) => gq.id === ans.questionId);
+              if (q && orderToNewId.has(q.orderIndex)) {
+                ans.questionId = orderToNewId.get(q.orderIndex)!;
+              }
+            }
+          }
+        }
+
+        const validQRows = await db
+          .select({ id: dbQuestions.id })
+          .from(dbQuestions)
+          .where(eq(dbQuestions.gameId, gameId));
+        const validQIds = new Set(validQRows.map((r) => r.id));
+        const validAnswers = realAnswers.filter((ans) => validQIds.has(ans.questionId));
+
+        if (validAnswers.length > 0) {
+          await db.insert(questionAnswers).values(
+            validAnswers.map((ans) => ({
+              gameId,
+              questionId: ans.questionId,
+              userId: ans.userId,
+              submittedAnswer: ans.submittedAnswer,
+              isCorrect: ans.isCorrect,
+              timeTakenMs: ans.timeTakenMs,
+            }))
+          );
+        }
+      } catch (qaErr) {
+        console.warn(
+          `[WebSocket] Warning inserting question_answers for game #${gameId}:`,
+          qaErr
+        );
+      }
     }
   } catch (err) {
     console.warn(`[WebSocket] Error persisting finished game #${gameId}:`, err);
