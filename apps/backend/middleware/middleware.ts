@@ -14,7 +14,7 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
             })
         }
 
-        const extractToken = token.split("Bearer ")[1]!
+        const extractToken = token.split("Bearer ")[1]
 
         if (!extractToken) {
             return res.status(400).json({
@@ -23,7 +23,8 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
             })
         }
 
-        const decode = verify(token, import.meta.env.JWT_SECRET!) as JwtPayload
+        const secret = process.env.JWT_SECRET || (typeof import.meta !== "undefined" && import.meta.env?.JWT_SECRET) || "fdsjhkhjshsgfhgfjshgfjhdfg";
+        const decode = verify(extractToken, secret) as JwtPayload
 
         if (!decode) {
             return res.status(400).json({
@@ -32,7 +33,7 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
             })
         }
 
-        req.userId = decode.userId
+        req.userId = Number(decode.userId ?? decode.id)
         next()
     } catch (error) {
         return res.status(500).json({

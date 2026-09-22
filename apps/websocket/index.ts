@@ -392,18 +392,14 @@ wss.on("connection", async (ws: WebSocket, req) => {
     username,
     ws,
   };
-
-  // Register and notify online list
   connectedUsers.set(userId, connectedUser);
   broadcastOnlineUsers();
 
-  // Send current queue status if user reconnects
   sendEvent(ws, {
     type: "QUEUE_STATUS",
     payload: { status: "WAITING" },
   });
 
-  // Handle incoming messages
   ws.on("message", async (data) => {
     let parsedJson: unknown;
     try {
@@ -422,12 +418,9 @@ wss.on("connection", async (ws: WebSocket, req) => {
 
     switch (action.type) {
       case "JOIN_QUEUE": {
-        // Prevent duplicate queue entries
         if (waitingQueue.some((u) => u.id === userId)) {
           return;
         }
-
-        // Check if another player is in queue
         if (waitingQueue.length > 0) {
           const opponent = waitingQueue.shift()!;
           if (opponent.id !== userId && opponent.ws.readyState === WebSocket.OPEN) {
@@ -436,7 +429,6 @@ wss.on("connection", async (ws: WebSocket, req) => {
           }
         }
 
-        // Put player in queue
         waitingQueue.push(connectedUser);
         sendEvent(ws, {
           type: "QUEUE_STATUS",
@@ -462,7 +454,7 @@ wss.on("connection", async (ws: WebSocket, req) => {
         const invitationId = crypto.randomUUID();
         const timeout = setTimeout(() => {
           pendingInvitations.delete(invitationId);
-        }, 30000); // 30 second invitation timeout
+        }, 30000); 
 
         pendingInvitations.set(invitationId, {
           id: invitationId,
@@ -528,7 +520,6 @@ wss.on("connection", async (ws: WebSocket, req) => {
           game.scores[userId] = (game.scores[userId] ?? 0) + 10;
         }
 
-        // Record player answer for DB persistence
         game.answeredRecords.push({
           gameId,
           questionId,
@@ -538,18 +529,21 @@ wss.on("connection", async (ws: WebSocket, req) => {
           timeTakenMs,
         });
 
-        // Advance to next question
-        const nextIdx = currentIdx + 1;
-        game.userQuestionIndex[userId] = nextIdx;
+        let nextQuestion: InternalQuestion;
 
-        // Auto-expand question pool if player is solving very fast
-        if (nextIdx >= game.questions.length) {
-          game.questions.push(generateQuestion(game.questions.length));
+        if (isCorrect) {
+          const nextIdx = currentIdx + 1;
+          game.userQuestionIndex[userId] = nextIdx;
+
+          if (nextIdx >= game.questions.length) {
+            game.questions.push(generateQuestion(game.questions.length));
+          }
+          nextQuestion = game.questions[nextIdx]!;
+        } else {
+          // If answer is incorrect, stay at the same question for retry
+          nextQuestion = currentQuestion;
         }
 
-        const nextQuestion = game.questions[nextIdx]!;
-
-        // Reply to current player with result & next question
         sendEvent(ws, {
           type: "ANSWER_RESULT",
           payload: {
@@ -561,7 +555,6 @@ wss.on("connection", async (ws: WebSocket, req) => {
           },
         });
 
-        // Broadcast live score update to both players
         const scoreUpdateEvent: ServerEvent = {
           type: "SCORE_UPDATE",
           payload: {
@@ -578,11 +571,15 @@ wss.on("connection", async (ws: WebSocket, req) => {
   });
 
   ws.on("close", () => {
-    cleanupUser(userId);
+    if (connectedUsers.get(userId)?.ws === ws) {
+      cleanupUser(userId);
+    }
   });
 
   ws.on("error", (err) => {
     console.error(`[WebSocket] Error on client #${userId}:`, err);
-    cleanupUser(userId);
+    if (connectedUsers.get(userId)?.ws === ws) {
+      cleanupUser(userId);
+    }
   });
 });

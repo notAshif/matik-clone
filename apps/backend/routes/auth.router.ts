@@ -6,7 +6,10 @@ import { sign, verify } from "jsonwebtoken";
 import { auth } from "../middleware/middleware";
 
 export const AuthRoute = Router();
-const JWT_SECRET = import.meta.env.JWT_SECRET
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  (typeof import.meta !== "undefined" && import.meta.env?.JWT_SECRET) ||
+  "fdsjhkhjshsgfhgfjshgfjhdfg";
 
 AuthRoute.post("/register", async (req, res) => {
     try {
@@ -115,7 +118,13 @@ AuthRoute.post("/login", async (req, res) => {
 AuthRoute.get("/me", auth, async (req, res) => {
     try {
 
-        const { userId } = req.userId
+        const userId = req.userId;
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+            });
+        }
 
         const user = await db.query.users.findFirst({
             where: eq(users.id, Number(userId)),
