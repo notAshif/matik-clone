@@ -24,6 +24,7 @@ export type MathOperator = z.infer<typeof mathOperatorSchema>;
 export const safeUserSchema = z.object({
   id: z.number(),
   username: z.string(),
+  rating: z.number().optional(),
 });
 export type SafeUser = z.infer<typeof safeUserSchema>;
 
@@ -103,7 +104,7 @@ export type OnlineUsersEvent = {
 export type QueueStatusEvent = {
   type: "QUEUE_STATUS";
   payload: {
-    status: "WAITING" | "MATCHED";
+    status: "IDLE" | "WAITING" | "MATCHED";
   };
 };
 
@@ -151,6 +152,25 @@ export type ScoreUpdateEvent = {
   };
 };
 
+export type PlayerRatingSummary = {
+  ratingBefore: number;
+  ratingAfter: number;
+  ratingChange: number;
+};
+
+export function calculateElo(
+  ratingA: number,
+  ratingB: number,
+  scoreA: number,
+  k = 32
+): { newRatingA: number; deltaA: number } {
+  const expectedA = 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
+  const rawDeltaA = Math.round(k * (scoreA - expectedA));
+  const newRatingA = Math.max(100, Math.round(ratingA + rawDeltaA));
+  const deltaA = newRatingA - ratingA;
+  return { newRatingA, deltaA };
+}
+
 export type GameOverEvent = {
   type: "GAME_OVER";
   payload: {
@@ -158,6 +178,7 @@ export type GameOverEvent = {
     winnerId: number | null;
     scores: Record<number, number>;
     reason: "TIME_UP" | "PLAYER_FORFEIT";
+    ratings?: Record<number, PlayerRatingSummary>;
   };
 };
 

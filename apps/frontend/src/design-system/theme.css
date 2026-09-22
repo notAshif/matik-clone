@@ -1,0 +1,402 @@
+:root {
+  --font-game: 'Fredoka', system-ui, -apple-system, sans-serif;
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-arcade: 'Chakra Petch', sans-serif;
+
+  /* 2D Game Palette */
+  --game-gold-light: #fef08a;
+  --game-gold-mid: #f59e0b;
+  --game-gold-dark: #b45309;
+  --game-gold-shadow: #451a03;
+
+  --game-green-light: #6ee7b7;
+  --game-green-mid: #10b981;
+  --game-green-dark: #047857;
+  --game-green-shadow: #022c22;
+
+  --game-red-light: #fca5a5;
+  --game-red-mid: #ef4444;
+  --game-red-dark: #b91c1c;
+  --game-red-shadow: #450a0a;
+
+  --game-blue-light: #a5b4fc;
+  --game-blue-mid: #6366f1;
+  --game-blue-dark: #4338ca;
+  --game-blue-shadow: #1e1b4b;
+
+  --game-cyan-light: #67e8f9;
+  --game-cyan-mid: #06b6d4;
+  --game-cyan-dark: #0e7490;
+  --game-cyan-shadow: #083344;
+
+  --game-slate-light: #64748b;
+  --game-slate-mid: #334155;
+  --game-slate-dark: #1e293b;
+  --game-slate-shadow: #020617;
+}
+
+/* 2D Game Background Grid / Texture */
+.game-bg {
+  background-color: #0b0f19;
+  background-image:
+    radial-gradient(circle at 50% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.06) 0%, transparent 40%),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+}
+
+/* ----------------------------------------------------
+   3D TACTILE GAME BUTTON SYSTEM
+   Inspired by Kenney UI & itch.io 2D Game UI Kits
+------------------------------------------------------- */
+.game-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-game);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-style: solid;
+  border-width: 3px;
+  border-radius: 14px;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.15s ease;
+  box-shadow: 0 4px 0 var(--btn-shadow), 0 8px 12px rgba(0, 0, 0, 0.4);
+}
+
+.game-btn::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  right: 6px;
+  height: 38%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 100%);
+  border-radius: 8px 8px 4px 4px;
+  pointer-events: none;
+}
+
+.game-btn:hover {
+  filter: brightness(1.08);
+}
+
+.game-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--btn-shadow), 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.game-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+  transform: none;
+}
+
+/* Green (Primary Action / Play) */
+.game-btn-green {
+  background: linear-gradient(180deg, #34d399 0%, #10b981 50%, #059669 100%);
+  border-color: #6ee7b7 #059669 #047857 #6ee7b7;
+  --btn-shadow: #022c22;
+  color: #022c22;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* Gold (Hero / Victory / Star) */
+.game-btn-gold {
+  background: linear-gradient(180deg, #fcd34d 0%, #f59e0b 50%, #d97706 100%);
+  border-color: #fde68a #b45309 #92400e #fde68a;
+  --btn-shadow: #451a03;
+  color: #451a03;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* Red (Danger / Cancel / Defeat) */
+.game-btn-red {
+  background: linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%);
+  border-color: #fca5a5 #b91c1c #991b1b #fca5a5;
+  --btn-shadow: #450a0a;
+  color: #ffffff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Blue / Indigo (Arena / Challengers) */
+.game-btn-blue {
+  background: linear-gradient(180deg, #818cf8 0%, #6366f1 50%, #4f46e5 100%);
+  border-color: #a5b4fc #4338ca #3730a3 #a5b4fc;
+  --btn-shadow: #1e1b4b;
+  color: #ffffff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Cyan (Magic / Tech / Refresh) */
+.game-btn-cyan {
+  background: linear-gradient(180deg, #67e8f9 0%, #06b6d4 50%, #0891b2 100%);
+  border-color: #a5f3fc #0e7490 #155e75 #a5f3fc;
+  --btn-shadow: #083344;
+  color: #083344;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* Slate / Iron (Neutral / Secondary / Close) */
+.game-btn-slate {
+  background: linear-gradient(180deg, #475569 0%, #334155 50%, #1e293b 100%);
+  border-color: #64748b #0f172a #020617 #64748b;
+  --btn-shadow: #020617;
+  color: #e2e8f0;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* Button Sizes */
+.game-btn-sm {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.85rem;
+  border-width: 2.5px;
+  border-radius: 10px;
+  box-shadow: 0 3px 0 var(--btn-shadow);
+}
+.game-btn-sm:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--btn-shadow);
+}
+
+.game-btn-md {
+  font-size: 0.95rem;
+  padding: 0.65rem 1.4rem;
+  border-width: 3px;
+  border-radius: 14px;
+}
+
+.game-btn-lg {
+  font-size: 1.15rem;
+  padding: 0.9rem 2.2rem;
+  border-width: 3.5px;
+  border-radius: 18px;
+  box-shadow: 0 5px 0 var(--btn-shadow), 0 10px 18px rgba(0, 0, 0, 0.4);
+}
+.game-btn-lg:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--btn-shadow);
+}
+
+.game-btn-icon {
+  padding: 0.55rem;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ----------------------------------------------------
+   2D GAME PANELS & FRAMES
+------------------------------------------------------- */
+.game-panel {
+  position: relative;
+  background: linear-gradient(180deg, #1b2234 0%, #0f1422 100%);
+  border: 3px solid #3b4661;
+  border-radius: 20px;
+  box-shadow:
+    0 0 0 3px #080b12,
+    0 8px 24px rgba(0, 0, 0, 0.7),
+    inset 0 2px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.game-panel-gold {
+  border-color: #d97706;
+  box-shadow:
+    0 0 0 3px #451a03,
+    0 10px 30px rgba(0, 0, 0, 0.8),
+    inset 0 2px 0 rgba(254, 240, 138, 0.25),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Inset carved container inside game panel */
+.game-inset {
+  background: #080c16;
+  border: 2px solid #232b3e;
+  border-radius: 14px;
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ----------------------------------------------------
+   TITLE PLAQUES & RIBBONS
+------------------------------------------------------- */
+.game-ribbon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 1.6rem;
+  font-family: var(--font-game);
+  font-weight: 900;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: linear-gradient(180deg, #fcd34d 0%, #f59e0b 50%, #d97706 100%);
+  border: 2.5px solid #fef08a;
+  border-bottom-color: #78350f;
+  border-radius: 10px;
+  color: #451a03;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow: 0 3px 0 #78350f, 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.game-ribbon-red {
+  background: linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%);
+  border-color: #fca5a5;
+  border-bottom-color: #7f1d1d;
+  color: #ffffff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+  box-shadow: 0 3px 0 #7f1d1d, 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.game-ribbon-green {
+  background: linear-gradient(180deg, #34d399 0%, #10b981 50%, #059669 100%);
+  border-color: #a7f3d0;
+  border-bottom-color: #064e3b;
+  color: #022c22;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 3px 0 #064e3b, 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.game-ribbon-blue {
+  background: linear-gradient(180deg, #818cf8 0%, #6366f1 50%, #4f46e5 100%);
+  border-color: #c7d2fe;
+  border-bottom-color: #312e81;
+  color: #ffffff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+  box-shadow: 0 3px 0 #312e81, 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* ----------------------------------------------------
+   RPG PROGRESS / SCORE / HEALTH BAR
+------------------------------------------------------- */
+.game-bar-track {
+  position: relative;
+  height: 22px;
+  background: #090d16;
+  border: 2.5px solid #28334b;
+  border-radius: 9999px;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.game-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+.game-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  right: 2px;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%);
+  border-radius: 9999px;
+}
+
+.game-bar-green {
+  background: linear-gradient(180deg, #34d399 0%, #10b981 100%);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+.game-bar-indigo {
+  background: linear-gradient(180deg, #818cf8 0%, #6366f1 100%);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+}
+
+.game-bar-gold {
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
+.game-bar-red {
+  background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+/* ----------------------------------------------------
+   2D GAME INPUT
+------------------------------------------------------- */
+.game-input {
+  width: 100%;
+  background: #080c16;
+  border: 3px solid #2e3952;
+  border-radius: 14px;
+  color: #ffffff;
+  font-family: var(--font-game);
+  font-weight: 700;
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.7);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.game-input:focus {
+  border-color: #38bdf8;
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.7), 0 0 0 3px rgba(56, 189, 248, 0.25);
+}
+
+/* ----------------------------------------------------
+   ANIMATIONS & GAME-FEEL
+------------------------------------------------------- */
+@keyframes floatScore {
+  0% {
+    opacity: 0;
+    transform: translateY(15px) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.25);
+  }
+  75% {
+    opacity: 1;
+    transform: translateY(-28px) scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-44px) scale(0.9);
+  }
+}
+
+.animate-float-score {
+  animation: floatScore 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes gameBounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-game-pop {
+  animation: gameBounceIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes radarSweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-radar-sweep {
+  animation: radarSweep 2.5s linear infinite;
+}

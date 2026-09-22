@@ -7,16 +7,19 @@ import {
   ratings,
   db,
   eq,
+  desc,
 } from "@repo/database";
 import { verify, type JwtPayload } from "jsonwebtoken";
 import {
   clientActionSchema,
+  calculateElo,
   type ClientAction,
   type ServerEvent,
   type SafeUser,
   type PublicQuestion,
   type InternalQuestion,
   type MathOperator,
+  type PlayerRatingSummary,
 } from "@repo/common";
 
 
@@ -208,12 +211,17 @@ export async function startMatch(
 
   activeGames.set(gameId, activeGame);
 
+  const [p1Rating, p2Rating] = await Promise.all([
+    getLatestRating(player1.id),
+    getLatestRating(player2.id),
+  ]);
+
   sendEvent(player1.ws, {
     type: "START_GAME",
     payload: {
       gameId,
       timeLimit,
-      opponent: { id: player2.id, username: player2.username },
+      opponent: { id: player2.id, username: player2.username, rating: p2Rating },
       firstQuestion: toPublicQuestion(questions[0]!),
     },
   });
@@ -223,12 +231,30 @@ export async function startMatch(
     payload: {
       gameId,
       timeLimit,
-      opponent: { id: player1.id, username: player1.username },
+      opponent: { id: player1.id, username: player1.username, rating: p1Rating },
       firstQuestion: toPublicQuestion(questions[0]!),
     },
   });
 
   return activeGame;
+}
+
+export async function getLatestRating(userId: number): Promise<number> {
+  try {
+    const latest = await db
+      .select({ ratingAfter: ratings.ratingAfter })
+      .from(ratings)
+      .where(eq(ratings.userId, userId))
+      .orderBy(desc(ratings.createdAt))
+      .limit(1);
+
+    if (latest.length > 0 && typeof latest[0]?.ratingAfter === "number") {
+      return Math.round(latest[0].ratingAfter);
+    }
+  } catch (err) {
+    console.warn(`[WebSocket] Error fetching rating for user #${userId}:`, err);
+  }
+  return 1200;
 }
 
 export async function finishGame(
@@ -255,6 +281,45 @@ export async function finishGame(
     else winnerId = null; // Draw
   }
 
+  // Calculate Elo rating changes
+  let p1Before = 1200;
+  let p2Before = 1200;
+  let p1NewRating = 1200;
+  let p2NewRating = 1200;
+  let p1Delta = 0;
+  let p2Delta = 0;
+
+  try {
+    p1Before = await getLatestRating(p1.id);
+    p2Before = await getLatestRating(p2.id);
+
+    const score1 = winnerId === p1.id ? 1 : winnerId === p2.id ? 0 : 0.5;
+    const score2 = winnerId === p2.id ? 1 : winnerId === p1.id ? 0 : 0.5;
+
+    const elo1 = calculateElo(p1Before, p2Before, score1);
+    const elo2 = calculateElo(p2Before, p1Before, score2);
+
+    p1NewRating = elo1.newRatingA;
+    p1Delta = elo1.deltaA;
+    p2NewRating = elo2.newRatingA;
+    p2Delta = elo2.deltaA;
+  } catch (err) {
+    console.warn(`[WebSocket] Error computing Elo for game #${gameId}:`, err);
+  }
+
+  const ratingPayload: Record<number, PlayerRatingSummary> = {
+    [p1.id]: {
+      ratingBefore: p1Before,
+      ratingAfter: p1NewRating,
+      ratingChange: p1Delta,
+    },
+    [p2.id]: {
+      ratingBefore: p2Before,
+      ratingAfter: p2NewRating,
+      ratingChange: p2Delta,
+    },
+  };
+
   const gameOverEvent: ServerEvent = {
     type: "GAME_OVER",
     payload: {
@@ -262,6 +327,7 @@ export async function finishGame(
       winnerId,
       scores: game.scores,
       reason,
+      ratings: ratingPayload,
     },
   };
 
@@ -297,6 +363,24 @@ export async function finishGame(
         score: p2Score,
         isWinner: winnerId === p2.id,
         rank: winnerId === p2.id ? 1 : winnerId === null ? 1 : 2,
+      },
+    ]);
+
+    // Persist rating records to database
+    await db.insert(ratings).values([
+      {
+        gameId,
+        userId: p1.id,
+        ratingBefore: p1Before,
+        ratingAfter: p1NewRating,
+        ratingChange: p1Delta,
+      },
+      {
+        gameId,
+        userId: p2.id,
+        ratingBefore: p2Before,
+        ratingAfter: p2NewRating,
+        ratingChange: p2Delta,
       },
     ]);
 
@@ -397,7 +481,7 @@ wss.on("connection", async (ws: WebSocket, req) => {
 
   sendEvent(ws, {
     type: "QUEUE_STATUS",
-    payload: { status: "WAITING" },
+    payload: { status: "IDLE" },
   });
 
   ws.on("message", async (data) => {
@@ -442,6 +526,10 @@ wss.on("connection", async (ws: WebSocket, req) => {
         if (idx !== -1) {
           waitingQueue.splice(idx, 1);
         }
+        sendEvent(ws, {
+          type: "QUEUE_STATUS",
+          payload: { status: "IDLE" },
+        });
         break;
       }
 
